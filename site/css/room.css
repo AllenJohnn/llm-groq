@@ -56,6 +56,12 @@
 .join-form-heading { margin-bottom: 22px; }
 .join-form-heading h2 { margin-top: 8px; color: var(--ink); font: 600 21px/1.25 var(--sans); letter-spacing: -.025em; }
 .join-form-heading > p:last-child { margin: 7px 0 0; color: var(--ink-3); font: 13px/1.5 var(--sans); }
+.join-network-help { margin-top: 10px; color: var(--ink-3); font-size: 11px; line-height: 1.5; }
+.join-network-help summary { width: fit-content; color: var(--ink-2); cursor: pointer; text-underline-offset: 3px; }
+.join-network-help summary:hover { color: var(--blue-text); }
+.join-network-help p { margin: 8px 0 5px; }
+.join-network-help a { color: var(--blue-text); font-weight: 550; text-underline-offset: 3px; }
+.join-network-help a:focus-visible,.join-network-help summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; border-radius: 3px; }
 .join-inputs { gap: 14px; margin-bottom: 18px; }
 #join-screen .join-field { display: grid; gap: 7px; color: var(--ink-2); font: 550 12px/1.3 var(--sans); text-align: left; }
 #join-screen .join-field input {
@@ -207,4 +213,58 @@ button:focus-visible,a:focus-visible,select:focus-visible,textarea:focus-visible
 }
 @media (prefers-reduced-motion: reduce) {
   .join-panel { animation: none; }
+}
+
+/* HTML answers can be previewed without granting the document access to the room. */
+.code-block.has-tabs .code-header { gap: 10px; }
+.code-block .code-tabs { display: inline-flex; align-items: center; gap: 4px; }
+.code-block .code-tab-btn {
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink-3);
+  font: 550 12px/1 var(--sans);
+  cursor: pointer;
+}
+.code-block .code-tab-btn:hover { color: var(--ink); background: var(--white); }
+.code-block .code-tab-btn.active { border-color: var(--rule); background: var(--white); color: var(--ink); }
+.code-block .code-tab-btn:focus-visible,.code-preview-refresh:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.code-block .preview-view[hidden],.code-block .code-view[hidden] { display: none; }
+.code-block .preview-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 42px;
+  padding: 6px 12px;
+  border-top: 1px solid var(--rule);
+  background: var(--bg-2);
+  color: var(--ink-3);
+  font: 11px/1.4 var(--sans);
+}
+.code-block .code-preview-refresh {
+  min-height: 28px;
+  padding: 5px 9px;
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  background: var(--white);
+  color: var(--ink-2);
+  font: 550 11px/1 var(--sans);
+  cursor: pointer;
+}
+.code-block .code-preview-refresh:hover { border-color: var(--blue-200); color: var(--blue-text); }
+.code-block .preview-view iframe {
+  display: block;
+  width: 100%;
+  height: clamp(320px, 58vh, 680px);
+  border: 0;
+  background: #fff;
+}
+@media (max-width: 560px) {
+  .code-block .preview-view iframe { height: min(62dvh, 560px); min-height: 300px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .code-block .code-tab-btn { transition: none; }
 }

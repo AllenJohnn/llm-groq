@@ -1484,9 +1484,11 @@ window.sliceStart = function(create) {
 
     <p id="join-device-status" class="join-device-status" role="status" aria-live="polite">Checking WebGPU support…</p>
 
-    <div id="join-hint">
-      Local network setup: <a href="?signal=localhost:9000">use tracker on port 9000</a>
-    </div>
+    <details id="join-hint" class="join-network-help">
+      <summary>Using a local demo server?</summary>
+      <p>Start the demo first, then connect through its local signaling server.</p>
+      <a href="?signal=localhost:9000">Connect to localhost:9000</a>
+    </details>
     
     <div id="join-status" role="status" aria-live="polite"></div>
 </div>

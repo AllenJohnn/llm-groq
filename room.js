@@ -7,7 +7,7 @@ import { f32ToF16, f16ToF32, parseGGUFHeader, ggufWeights, ggufShardBytes, GGML_
   from "./engine/gguf.js";
 import { Qwen35Engine } from "./engine/qwen35.js";
 import { WIRE_F16, badF32, f32ToB64, packF16, unpackF16, asU16, packWire, unpackWire, asF32, b64ToF32 } from "./room/wire.js";
-import { esc, md } from "./room/markdown.js";
+import { esc, md } from "./room/markdown.js?v=20261008-live-preview";
 import { aiSample } from "./room/sampling.js";
 import { chatRecipients } from "./room/visibility.js";
 import { MODELS, NEED_GB, MAX_SEQ, MAX_NEW, MIN_ROOM, detectLocalModel, GROQ_MODEL_MAP, getGroqModelId } from "./room/models.js";
@@ -1302,33 +1302,56 @@ function renderWelcomePrompts() {
 }
 
 // Global action handlers for Ant Design X components
+function setCodePreview(codeBlock) {
+  const source = codeBlock.querySelector(".preview-source")?.content?.textContent || "";
+  const frame = codeBlock.querySelector(".preview-view iframe");
+  if (!frame) return;
+
+  const policy = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src data: blob:; connect-src 'none'; form-action 'none'; base-uri 'none'; frame-src 'none'">`;
+  let documentHtml = source;
+  if (/<head\b[^>]*>/i.test(documentHtml)) {
+    documentHtml = documentHtml.replace(/(<head\b[^>]*>)/i, `$1${policy}`);
+  } else if (/<html\b[^>]*>/i.test(documentHtml)) {
+    documentHtml = documentHtml.replace(/(<html\b[^>]*>)/i, `$1<head>${policy}</head>`);
+  } else {
+    const doctype = documentHtml.match(/^\s*<!doctype[^>]*>/i)?.[0] || "";
+    documentHtml = doctype + policy + documentHtml.slice(doctype.length);
+  }
+  frame.srcdoc = documentHtml;
+  frame.dataset.previewReady = "true";
+}
+
 window.switchCodeTab = function(btn, tab) {
   const codeBlock = btn.closest(".code-block");
   if (!codeBlock) return;
   
-  // Update buttons
   const buttons = codeBlock.querySelectorAll(".code-tab-btn");
   buttons.forEach(b => {
-    b.style.background = "transparent";
-    b.style.borderColor = "transparent";
-    b.style.color = "var(--muted)";
-    b.classList.remove("active");
+    const selected = b === btn;
+    b.classList.toggle("active", selected);
+    b.setAttribute("aria-selected", String(selected));
   });
-  btn.style.background = "var(--panel)";
-  btn.style.borderColor = "var(--border)";
-  btn.style.color = "var(--text)";
-  btn.classList.add("active");
 
-  // Update content
   const codeView = codeBlock.querySelector(".code-view");
   const previewView = codeBlock.querySelector(".preview-view");
-  if (tab === "code") {
-    if (codeView) { codeView.style.display = "block"; codeView.classList.add("active"); }
-    if (previewView) { previewView.style.display = "none"; previewView.classList.remove("active"); }
-  } else if (tab === "preview") {
-    if (codeView) { codeView.style.display = "none"; codeView.classList.remove("active"); }
-    if (previewView) { previewView.style.display = "block"; previewView.classList.add("active"); }
+  const showPreview = tab === "preview";
+  if (codeView) {
+    codeView.hidden = showPreview;
+    codeView.classList.toggle("active", !showPreview);
   }
+  if (previewView) {
+    previewView.hidden = !showPreview;
+    previewView.classList.toggle("active", showPreview);
+  }
+  if (showPreview) {
+    const frame = previewView?.querySelector("iframe");
+    if (frame && frame.dataset.previewReady !== "true") setCodePreview(codeBlock);
+  }
+};
+
+window.refreshCodePreview = function(btn) {
+  const codeBlock = btn.closest(".code-block");
+  if (codeBlock) setCodePreview(codeBlock);
 };
 
 window.copyCode = function(btn) {
