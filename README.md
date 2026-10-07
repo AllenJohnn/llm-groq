@@ -1,11 +1,11 @@
 <p align="center">
-  <a href="https://webslice.ai"><img src="favicon.svg" width="72" alt="WebSlice"></a>
+  <a href="https://webslice.ai"><img src="favicon.svg" width="72" alt="LLM ShardX"></a>
 </p>
-<h1 align="center">WebSlice</h1>
-<p align="center"><b>Every device brings a slice. Together they run the whole model.</b></p>
+<h1 align="center">LLM ShardX</h1>
+<p align="center"><b>A Web-Based Platform for LLM Sharding and Deployment</b></p>
 <p align="center">
   <a href="https://webslice.ai">Site</a> ·
-  <a href="https://webslice.ai/room">Start a swarm</a> ·
+  <a href="https://webslice.ai/room">Open a room</a> ·
   <a href="docs/architecture.md">Architecture</a> ·
   <a href="docs/bench-log.md">Benchmarks</a> ·
   <a href="roadmap/">Roadmap</a> ·
@@ -21,7 +21,7 @@ https://github.com/user-attachments/assets/4f349e4b-c699-45da-abe8-e9162689293e
 
 <p align="center"><sub>Demo, recorded September 7, 2026: Qwen 3.8 27B across a MacBook and an iPhone in browser tabs, same Wi‑Fi, 400 tokens at 10.7 tok/s. <a href="https://github.com/Nehanth/webslice/releases/download/v0.2.0/webslice-demo-2026-09-07.mp4">Download</a>.</sub></p>
 
-WebSlice runs large language models across the devices in a room, in their browser tabs. Each device holds a slice of the model; a 10 KB activation vector passes between them over direct WebRTC connections. Nothing to install, no accounts, no server does any thinking.
+LLM ShardX runs large language models across the devices in a room, in their browser tabs. Each device holds a slice of the model; a 10 KB activation vector passes between them over direct WebRTC connections. Nothing to install, no accounts, no server does any thinking.
 
 - **27B in browser tabs.** Qwen 3.8 27B (15 GB of Q4_0 weights) across laptops, phones and PCs that individually can't hold it.
 - **Native-competitive decode.** A from-scratch WebGPU engine (~50 WGSL kernels) at the memory roofline: 9.0 tok/s plain and 16 tok/s with speculative decoding on a GB10, where native llama.cpp measures 8.0 on the same file and GPU. ([bench log](docs/bench-log.md))
@@ -33,12 +33,50 @@ WebSlice runs large language models across the devices in a room, in their brows
 
 **Use it:** open [webslice.ai/room](https://webslice.ai/room), create a room, share the code, pick a model, start. Every device downloads only its layers (cached for next time).
 
-**Run it locally:**
+**Run the project from VS Code on Windows:**
 
-```bash
-git clone https://github.com/AllenJohnn/llm.git && cd llm
-npx -y serve -l 8080 .        # any static server works; then open http://localhost:8080/room
+1. Install [Node.js](https://nodejs.org/) if it is not already installed. If the project is not already on the computer, open VS Code's terminal and clone it:
+
+   ```powershell
+   git clone https://github.com/AllenJohnn/llm-groq.git
+   cd llm-groq
+   code .
+   ```
+
+   Otherwise, open the existing project folder in VS Code.
+2. Choose **Terminal → New Terminal**. The commands below work in the default PowerShell terminal.
+3. Install the project dependencies (repeat after pulling changes if `package.json` changed):
+
+   ```powershell
+   npm install
+   ```
+
+4. (Optional, recommended for an offline or faster demo) Download the models you want to show ahead of time. Qwen3 0.6B is the quick, lightweight option; Qwen3 1.7B is a stronger demo if the computer has enough memory and disk space:
+
+   ```powershell
+   node scripts/download_model.mjs qwen3-0.6b
+   node scripts/download_model.mjs qwen3-1.7b
+   ```
+
+   Downloads are saved in this project's `models/` folder. They prepare the model files, but do not keep a model loaded in memory. Before presenting, open the room, turn **Groq Cloud** off, select the local model, and click **Load model** once. Leave that browser tab open to avoid loading it again.
+
+5. Start the local app and room signaling server:
+
+   ```powershell
+   npm run demo
+   ```
+
+6. Open the **HOST TAB** URL printed in the terminal (normally `http://localhost:8080/room?signal=localhost:9000`). Create a room. To demonstrate two devices on one computer, open the printed **WORKER TAB** URL in another browser tab or window, then join with the room code. For a phone or another computer on the same Wi-Fi, open the printed **MOBILE / LAN PEER** URL instead. Start the model after the devices have joined.
+
+Keep the terminal running while presenting; press `q` there to stop the demo servers. If ports 8080 or 9000 are already in use, close the earlier server terminal or choose unused ports, for example:
+
+```powershell
+npm run demo -- --port 8081 --signal-port 9001
 ```
+
+For a phone demo, both devices must be on the same Wi-Fi and Windows Firewall may ask to allow Node.js on the private network. Use the LAN URL printed by the launcher; if its IP is not your Wi-Fi address, check `ipconfig` and replace the IP in both URL fields with the computer's Wi-Fi IPv4 address.
+
+**Local signaling note:** `npm run demo` starts both the web app and its signaling server. The app server alone (`npm run serve:local`) does not start room signaling.
 
 **Serve through your own Cloudflare subdomain:** create a remotely managed Cloudflare Tunnel and add a Published application route for your subdomain pointing to `http://localhost:8080`. Put its tunnel token in the ignored local `.env` file as `CLOUDFLARE_TUNNEL_TOKEN=<token>`, then run `npm run serve`. This starts the app server and Cloudflare Tunnel together; without that setting, it starts locally only. Keep the token private. The hostname is public unless you protect it with a Cloudflare Access policy.
 
@@ -71,7 +109,7 @@ Other projects split or share models across machines. The differences are what h
 
 | | Model per device | Devices | Install | Network |
 |---|---|---|---|---|
-| **WebSlice** | a slice of layers | laptops and phones, any OS with a WebGPU browser | none, open a URL | same Wi‑Fi or across the internet (WebRTC) |
+| **LLM ShardX** | a slice of layers | laptops and phones, any OS with a WebGPU browser | none, open a URL | same Wi‑Fi or across the internet (WebRTC) |
 | exo | a slice of layers | machines that run Python and MLX or tinygrad | Python package per node | one network |
 | llama.cpp `rpc-server` | a slice of layers | machines that run the binary | binary and an open port per node; the docs say not for untrusted networks | LAN in practice |
 | Petals | a slice of layers | server GPUs in a public swarm | Python client and server | internet, public swarm |
@@ -128,9 +166,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) and [GOVERNANCE.md](GOVERNANCE.md). Bench
 ## Citation
 
 ```bibtex
-@software{webslice2026,
+@software{llmshardx2026,
   author = {John, Allen},
-  title  = {WebSlice: peer-to-peer LLM inference across browser tabs},
+  title  = {LLM ShardX: peer-to-peer LLM inference across browser tabs},
   year   = {2026},
   url    = {https://github.com/AllenJohnn/llm}
 }
