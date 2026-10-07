@@ -925,6 +925,223 @@ export class PerfSidebar {
         align-items: center;
         gap: 5px;
       }
+
+      /* Full-page Performance dashboard */
+      #room-screen.room-performance-view #perf-sidebar .perf-section {
+        display: block;
+        padding: 24px clamp(18px, 3vw, 44px) 40px;
+      }
+      #room-screen.room-performance-view #perf-sidebar .perf-dashboard {
+        width: min(100%, 1440px);
+        margin: 0 auto;
+        display: grid;
+        gap: 22px;
+      }
+      #room-screen.room-performance-view #perf-sidebar .perf-live-panel,
+      #room-screen.room-performance-view #perf-sidebar .perf-viz-card,
+      #room-screen.room-performance-view #perf-sidebar .perf-flow,
+      #room-screen.room-performance-view #perf-sidebar .perf-compare {
+        min-width: 0;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: var(--panel);
+        box-shadow: 0 1px 2px rgba(20, 22, 29, .035);
+      }
+      #room-screen.room-performance-view #perf-sidebar .perf-live-panel { padding: 24px; }
+      #room-screen.room-performance-view #perf-sidebar .perf-dashboard-heading,
+      #room-screen.room-performance-view #perf-sidebar .perf-compare-heading {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+      }
+      #room-screen.room-performance-view #perf-sidebar .perf-dashboard-heading .perf-sec-label {
+        padding: 0;
+        border: 0;
+        font-size: 11px;
+        letter-spacing: .14em;
+      }
+      #room-screen.room-performance-view #perf-sidebar .perf-live-title,
+      #room-screen.room-performance-view #perf-sidebar .perf-compare-title {
+        margin: 5px 0 0;
+        color: var(--text);
+        font: 600 19px/1.3 var(--sans);
+        letter-spacing: -.02em;
+      }
+      #room-screen.room-performance-view #perf-sidebar .perf-live-state {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        flex: none;
+        margin-top: 2px;
+        padding: 6px 10px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--panel-2);
+        color: var(--muted);
+        font: 550 11px/1.2 var(--sans);
+      }
+      #room-screen.room-performance-view #perf-sidebar .perf-live-state i {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #8b909b;
+      }
+      #room-screen.room-performance-view #perf-sidebar .perf-live-state.streaming {
+        border-color: color-mix(in srgb, var(--accent) 32%, var(--border));
+        background: color-mix(in srgb, var(--accent) 6%, var(--panel));
+        color: var(--accent);
+      }
+      #room-screen.room-performance-view #perf-sidebar .perf-live-state.streaming i { background: var(--accent); }
+      #room-screen.room-performance-view #perf-sidebar .perf-live-layout {
+        display: grid;
+        grid-template-columns: minmax(245px, .68fr) minmax(0, 1.75fr);
+        gap: clamp(24px, 4vw, 56px);
+        align-items: stretch;
+        margin-top: 24px;
+      }
+      #room-screen.room-performance-view #perf-sidebar .perf-live-readout {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 25px;
+        min-width: 0;
+      }
+      #room-screen.room-performance-view #perf-sidebar .perf-hero-stat { margin: 0; gap: 9px; }
+      #room-screen.room-performance-view #perf-sidebar .perf-hero-main-row { gap: 10px; flex-wrap: wrap; }
+      #room-screen.room-performance-view #perf-sidebar .perf-hero-val {
+        font-size: clamp(52px, 5.2vw, 76px);
+        line-height: .96;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -.065em;
+      }
+      #room-screen.room-performance-view #perf-sidebar .perf-hero-unit {
+        font: 550 12px/1.4 var(--sans);
+        letter-spacing: 0;
+        color: var(--muted);
+      }
+      #room-screen.room-performance-view #perf-sidebar .perf-hero-sub {
+        max-width: 34ch;
+        color: var(--muted);
+        font: 12px/1.5 var(--sans);
+      }
+      #room-screen.room-performance-view #perf-sidebar .perf-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin: 0;
+      }
+      #room-screen.room-performance-view #perf-sidebar .perf-stat-item {
+        min-width: 0;
+        padding: 11px 12px;
+        border-radius: 11px;
+        background: var(--panel-2);
+      }
+      #room-screen.room-performance-view #perf-sidebar .perf-stat-k {
+        font: 600 10px/1.35 var(--sans);
+        letter-spacing: .08em;
+      }
+      #room-screen.room-performance-view #perf-sidebar .perf-stat-v {
+        overflow-wrap: anywhere;
+        font: 600 15px/1.35 var(--sans);
+        font-variant-numeric: tabular-nums;
+      }
+      #room-screen.room-performance-view #perf-sidebar .perf-live-chart-panel { min-width: 0; }
+      #room-screen.room-performance-view #perf-sidebar .perf-chart-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 0 0 10px;
+        color: var(--text);
+        font: 550 12px/1.4 var(--sans);
+      }
+      #room-screen.room-performance-view #perf-sidebar .perf-live-legend { display: inline-flex; flex-wrap: wrap; gap: 10px; }
+      #room-screen.room-performance-view #perf-sidebar .perf-live-legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--muted);
+        font: 11px/1.3 var(--sans);
+      }
+      #room-screen.room-performance-view #perf-sidebar .perf-canvas-wrap {
+        height: 284px;
+        border-radius: 13px;
+        background: color-mix(in srgb, var(--panel-2) 62%, var(--panel));
+      }
+      #room-screen.room-performance-view #perf-sidebar .perf-canvas-empty {
+        color: var(--muted);
+        font: 12px/1.5 var(--sans);
+      }
+      #room-screen.room-performance-view #perf-sidebar .perf-secondary-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(300px, .8fr);
+        gap: 18px;
+        align-items: stretch;
+      }
+      #room-screen.room-performance-view #perf-sidebar .perf-viz-card,
+      #room-screen.room-performance-view #perf-sidebar .perf-flow { padding: 20px; }
+      #room-screen.room-performance-view #perf-sidebar .perf-device-canvas-wrap { height: 185px; min-height: 140px; }
+      #room-screen.room-performance-view #perf-sidebar .perf-device-status-list { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+      #room-screen.room-performance-view #perf-sidebar .perf-flow {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+      #room-screen.room-performance-view #perf-sidebar .perf-flow-readouts { flex-wrap: wrap; align-items: flex-start; }
+      #room-screen.room-performance-view #perf-sidebar .perf-flow-metric { min-width: 92px; }
+      #room-screen.room-performance-view #perf-sidebar .perf-compare { margin: 0; padding: 22px 24px; }
+      #room-screen.room-performance-view #perf-sidebar .perf-compare-eyebrow {
+        color: var(--muted);
+        font: 600 10px/1.4 var(--sans);
+        letter-spacing: .13em;
+      }
+      #room-screen.room-performance-view #perf-sidebar .perf-compare-current { flex: none; margin-top: 3px; font-size: 11px; }
+      #room-screen.room-performance-view #perf-sidebar .perf-compare-model,
+      #room-screen.room-performance-view #perf-sidebar .perf-compare-caption { color: var(--muted); font: 12px/1.5 var(--sans); }
+      #room-screen.room-performance-view #perf-sidebar .perf-compare-model { margin-top: 9px; }
+      #room-screen.room-performance-view #perf-sidebar .perf-compare-caption { margin-top: 3px; }
+      #room-screen.room-performance-view #perf-sidebar .perf-compare-canvas-wrap {
+        height: 240px;
+        min-height: 190px;
+        margin: 14px 0 10px;
+        border-radius: 12px;
+        background: color-mix(in srgb, var(--panel-2) 55%, var(--panel));
+      }
+      #room-screen.room-performance-view #perf-sidebar .perf-compare-head { font-size: 10px; }
+      #room-screen.room-performance-view #perf-sidebar .perf-compare-row { min-height: 54px; font-size: 12px; }
+      #room-screen.room-performance-view #perf-sidebar .perf-compare-detail { font-size: 10px; }
+      #room-screen.room-performance-view #perf-sidebar .perf-compare-empty { font-size: 12px; }
+      @media (max-width: 1100px) {
+        #room-screen.room-performance-view #perf-sidebar .perf-section { padding-inline: 18px; }
+        #room-screen.room-performance-view #perf-sidebar .perf-live-layout { grid-template-columns: minmax(200px, .62fr) minmax(0, 1.38fr); gap: 22px; }
+        #room-screen.room-performance-view #perf-sidebar .perf-canvas-wrap { height: 250px; }
+        #room-screen.room-performance-view #perf-sidebar .perf-secondary-grid { grid-template-columns: minmax(0, 1fr) minmax(260px, .85fr); }
+      }
+      @media (max-width: 860px) {
+        #room-screen.room-performance-view #perf-sidebar { order: 1; width: 100% !important; max-height: none; height: auto; }
+        #room-screen.room-performance-view #perf-sidebar .perf-section { display: block; padding: 18px 14px 28px; }
+        #room-screen.room-performance-view #perf-sidebar .perf-dashboard { gap: 14px; }
+        #room-screen.room-performance-view #perf-sidebar .perf-live-panel { padding: 18px 15px; }
+        #room-screen.room-performance-view #perf-sidebar .perf-live-layout { grid-template-columns: minmax(0, 1fr); gap: 20px; margin-top: 18px; }
+        #room-screen.room-performance-view #perf-sidebar .perf-live-readout { gap: 18px; }
+        #room-screen.room-performance-view #perf-sidebar .perf-hero-val { font-size: 58px; }
+        #room-screen.room-performance-view #perf-sidebar .perf-canvas-wrap { height: 230px; }
+        #room-screen.room-performance-view #perf-sidebar .perf-secondary-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+        #room-screen.room-performance-view #perf-sidebar .perf-viz-card,
+        #room-screen.room-performance-view #perf-sidebar .perf-flow,
+        #room-screen.room-performance-view #perf-sidebar .perf-compare { padding: 17px 15px; }
+        #room-screen.room-performance-view #perf-sidebar .perf-compare-canvas-wrap { height: 220px; }
+      }
+      @media (max-width: 480px) {
+        #room-screen.room-performance-view #perf-sidebar .perf-dashboard-heading,
+        #room-screen.room-performance-view #perf-sidebar .perf-compare-heading { gap: 10px; }
+        #room-screen.room-performance-view #perf-sidebar .perf-live-title,
+        #room-screen.room-performance-view #perf-sidebar .perf-compare-title { font-size: 17px; }
+        #room-screen.room-performance-view #perf-sidebar .perf-hero-val { font-size: 52px; }
+        #room-screen.room-performance-view #perf-sidebar .perf-compare-current { white-space: normal; text-align: right; }
+        #room-screen.room-performance-view #perf-sidebar .perf-compare-grid { grid-template-columns: minmax(80px, 1.2fr) repeat(3, minmax(43px, .8fr)); gap: 4px; }
+      }
     `;
     document.head.appendChild(style);
   }
@@ -988,102 +1205,104 @@ export class PerfSidebar {
         </div>
       </div>
 
-      <!-- Simple room speed and request flow -->
       <div class="perf-section">
-        <div class="perf-sec-label">
-          <span>LIVE ANSWER SPEED</span>
-          <span class="perf-unit" id="perf-cur-model">—</span>
-        </div>
-        
-        <div class="perf-hero-stat">
-          <div class="perf-hero-main-row">
-            <div class="perf-hero-val" id="perf-hero-tps">0.0</div>
-          <div class="perf-hero-unit">text pieces / sec</div>
-          </div>
-          <div class="perf-hero-sub" id="perf-hero-sub">Start a local model to begin</div>
-        </div>
-
-        <div class="perf-chart-title">
-          <span>Answer speed over time</span>
-          <span class="perf-live-legend" aria-label="Chart series">
-            <span class="perf-live-legend-item"><i class="perf-live-legend-swatch raw" aria-hidden="true"></i>Measured</span>
-            <span class="perf-live-legend-item"><i class="perf-live-legend-swatch" aria-hidden="true"></i>5-sample average</span>
-          </span>
-        </div>
-        <div class="perf-canvas-wrap" id="perf-live-canvas-wrap">
-          <canvas id="perf-live-canvas" width="298" height="124" role="img" aria-label="Live answer speed over time, showing measured speed and a rolling five-sample average"></canvas>
-          <div class="perf-canvas-empty" id="perf-live-empty">Your answer speed will appear here while it is being written.</div>
-        </div>
-
-        <section class="perf-viz-card" aria-labelledby="perf-device-viz-title">
-          <div class="perf-viz-head">
-            <div>
-              <div class="perf-viz-title" id="perf-device-viz-title">Device contribution</div>
-              <div class="perf-viz-subtitle" id="perf-device-viz-subtitle">GPU memory pledged by each device in this room</div>
+        <div class="perf-dashboard">
+          <section class="perf-live-panel" aria-labelledby="perf-live-title">
+            <div class="perf-dashboard-heading">
+              <div>
+                <div class="perf-sec-label"><span>LIVE RUN</span><span class="perf-unit" id="perf-cur-model">—</span></div>
+                <h2 class="perf-live-title" id="perf-live-title">Answer performance</h2>
+              </div>
+              <span class="perf-live-state"><i aria-hidden="true"></i><span id="perf-live-state-label">Waiting for a run</span></span>
             </div>
-            <span class="perf-viz-badge" id="perf-device-viz-badge">1 DEVICE</span>
-          </div>
-          <div class="perf-device-canvas-wrap" id="perf-device-canvas-wrap">
-            <canvas id="perf-device-canvas" aria-label="A chart of device contributions to model inference"></canvas>
-            <div class="perf-viz-empty" id="perf-device-viz-empty" hidden></div>
-          </div>
-          <div class="perf-device-status-list" id="perf-device-status-list"></div>
-        </section>
+            <div class="perf-live-layout">
+              <div class="perf-live-readout">
+                <div class="perf-hero-stat">
+                  <div class="perf-hero-main-row">
+                    <div class="perf-hero-val" id="perf-hero-tps">0.0</div>
+                    <div class="perf-hero-unit">pieces / sec</div>
+                  </div>
+                  <div class="perf-hero-sub" id="perf-hero-sub">Start a local model to begin</div>
+                </div>
+                <div class="perf-grid">
+                  <div class="perf-stat-item"><span class="perf-stat-k">PEAK SPEED</span><span class="perf-stat-v" id="perf-stat-peak">0.0 pieces/s</span></div>
+                  <div class="perf-stat-item"><span class="perf-stat-k">OUTPUT</span><span class="perf-stat-v" id="perf-stat-tokens">0</span></div>
+                  <div class="perf-stat-item"><span class="perf-stat-k">FIRST RESPONSE</span><span class="perf-stat-v" id="perf-stat-ttft">—</span></div>
+                  <div class="perf-stat-item"><span class="perf-stat-k">ELAPSED</span><span class="perf-stat-v" id="perf-stat-time">0.0s</span></div>
+                </div>
+              </div>
+              <div class="perf-live-chart-panel">
+                <div class="perf-chart-title">
+                  <span>Throughput over time</span>
+                  <span class="perf-live-legend" aria-label="Chart series">
+                    <span class="perf-live-legend-item"><i class="perf-live-legend-swatch raw" aria-hidden="true"></i>Measured</span>
+                    <span class="perf-live-legend-item"><i class="perf-live-legend-swatch" aria-hidden="true"></i>5-sample average</span>
+                  </span>
+                </div>
+                <div class="perf-canvas-wrap" id="perf-live-canvas-wrap">
+                  <canvas id="perf-live-canvas" width="298" height="124" role="img" aria-label="Live answer speed over time, showing measured speed and a rolling five-sample average"></canvas>
+                  <div class="perf-canvas-empty" id="perf-live-empty">Start an answer to see throughput build in real time.</div>
+                </div>
+              </div>
+            </div>
+          </section>
 
-        <div class="perf-flow" id="perf-shard-flow">
-          <div class="perf-flow-head">
-            <span class="perf-flow-title">How your room answers</span>
-            <span class="perf-flow-state" id="perf-flow-state">Waiting for local model</span>
-          </div>
-          <div class="perf-flow-track" id="perf-flow-track" aria-label="Your prompt passes through the devices helping to create an answer"></div>
-          <div class="perf-flow-empty" id="perf-flow-empty">Start a local model. Compatible devices in the room can share the work.</div>
-          <div class="perf-flow-note" id="perf-flow-note">Your prompt is handled by the model, then the answer is written and shown here.</div>
-          <div class="perf-flow-readouts">
-            <span class="perf-flow-metric">Answer speed<b id="perf-flow-speed">0.0 text pieces/s</b></span>
-            <span class="perf-flow-metric">Devices helping<b id="perf-flow-devices">0</b></span>
-            <span class="perf-flow-metric">Average if shared evenly<b id="perf-flow-efficiency">—</b></span>
-          </div>
-        </div>
+          <div class="perf-secondary-grid">
+            <section class="perf-viz-card" aria-labelledby="perf-device-viz-title">
+              <div class="perf-viz-head">
+                <div>
+                  <div class="perf-viz-title" id="perf-device-viz-title">Device contribution</div>
+                  <div class="perf-viz-subtitle" id="perf-device-viz-subtitle">GPU memory pledged by each device in this room</div>
+                </div>
+                <span class="perf-viz-badge" id="perf-device-viz-badge">1 DEVICE</span>
+              </div>
+              <div class="perf-device-canvas-wrap" id="perf-device-canvas-wrap">
+                <canvas id="perf-device-canvas" aria-label="A chart of device contributions to model inference"></canvas>
+                <div class="perf-viz-empty" id="perf-device-viz-empty" hidden></div>
+              </div>
+              <div class="perf-device-status-list" id="perf-device-status-list"></div>
+            </section>
 
-        <div class="perf-grid">
-          <div class="perf-stat-item">
-            <span class="perf-stat-k">BEST SPEED</span>
-            <span class="perf-stat-v" id="perf-stat-peak">0.0 text pieces/s</span>
+            <section class="perf-flow" id="perf-shard-flow" aria-labelledby="perf-flow-title">
+              <div class="perf-flow-head">
+                <span class="perf-flow-title" id="perf-flow-title">How the room answers</span>
+                <span class="perf-flow-state" id="perf-flow-state">Waiting for local model</span>
+              </div>
+              <div class="perf-flow-track" id="perf-flow-track" aria-label="Your prompt passes through the devices helping to create an answer"></div>
+              <div class="perf-flow-empty" id="perf-flow-empty">Start a local model. Compatible devices in the room can share the work.</div>
+              <div class="perf-flow-note" id="perf-flow-note">The model processes your prompt, then streams the answer back to the room.</div>
+              <div class="perf-flow-readouts">
+                <span class="perf-flow-metric">Answer speed<b id="perf-flow-speed">0.0 text pieces/s</b></span>
+                <span class="perf-flow-metric">Devices helping<b id="perf-flow-devices">0</b></span>
+                <span class="perf-flow-metric">Even-share estimate<b id="perf-flow-efficiency">—</b></span>
+              </div>
+            </section>
           </div>
-          <div class="perf-stat-item">
-            <span class="perf-stat-k">PIECES OF TEXT</span>
-            <span class="perf-stat-v" id="perf-stat-tokens">0</span>
-          </div>
-          <div class="perf-stat-item">
-            <span class="perf-stat-k">FIRST RESPONSE</span>
-            <span class="perf-stat-v" id="perf-stat-ttft">—</span>
-          </div>
-          <div class="perf-stat-item">
-            <span class="perf-stat-k">TOTAL TIME</span>
-            <span class="perf-stat-v" id="perf-stat-time">0.0s</span>
-          </div>
-        </div>
 
-        <div class="perf-compare" aria-live="polite">
-          <div class="perf-compare-title">Past speed by device setup</div>
-          <div class="perf-compare-context">
-            <span class="perf-compare-current" id="perf-compare-current-devices" role="status" aria-live="polite">Connected now: 1 device</span>
-            <span>Chart and rows below show saved answers. They can include setups that are no longer online.</span>
-          </div>
-          <div class="perf-compare-model" id="perf-compare-model">Complete a local answer to start comparing.</div>
-          <div class="perf-compare-canvas-wrap" id="perf-compare-canvas-wrap">
-            <canvas id="perf-compare-canvas" role="img" aria-label="Historical average throughput and best answer peak by device setup"></canvas>
-            <div class="perf-viz-empty" id="perf-compare-chart-empty">Complete a local answer with each device setup to build a speed comparison.</div>
-          </div>
-          <div class="perf-viz-legend" aria-hidden="true">
-            <span class="perf-viz-legend-item"><i style="background:#2a45e0"></i>Average speed</span>
-            <span class="perf-viz-legend-item"><i style="background:#159a78"></i>Best answer peak</span>
-          </div>
-          <div class="perf-compare-grid perf-compare-head" aria-hidden="true">
-            <span>Setup</span><span>Avg. pieces/s</span><span>Best peak</span><span>First reply</span>
-          </div>
-          <div id="perf-compare-rows"></div>
-          <div class="perf-compare-empty" id="perf-compare-empty">Your completed local answers will be saved on this browser.</div>
+          <section class="perf-compare" aria-labelledby="perf-compare-title" aria-live="polite">
+            <div class="perf-compare-heading">
+              <div>
+                <div class="perf-compare-eyebrow">LOCAL RUN HISTORY</div>
+                <h2 class="perf-compare-title" id="perf-compare-title">Compare device setups</h2>
+              </div>
+              <span class="perf-compare-current" id="perf-compare-current-devices" role="status" aria-live="polite">Connected now: 1 device</span>
+            </div>
+            <div class="perf-compare-model" id="perf-compare-model">Complete a local answer to start comparing.</div>
+            <div class="perf-compare-caption">Saved results stay on this browser. Past setups may include devices that are offline now.</div>
+            <div class="perf-compare-canvas-wrap" id="perf-compare-canvas-wrap">
+              <canvas id="perf-compare-canvas" role="img" aria-label="Historical average throughput and best answer peak by device setup"></canvas>
+              <div class="perf-viz-empty" id="perf-compare-chart-empty">Complete a local answer to create your first baseline.</div>
+            </div>
+            <div class="perf-viz-legend" aria-hidden="true">
+              <span class="perf-viz-legend-item"><i style="background:#2a45e0"></i>Average speed</span>
+              <span class="perf-viz-legend-item"><i style="background:#159a78"></i>Best peak</span>
+            </div>
+            <div class="perf-compare-grid perf-compare-head" aria-hidden="true">
+              <span>Setup</span><span>Avg. pieces/s</span><span>Best peak</span><span>First reply</span>
+            </div>
+            <div id="perf-compare-rows"></div>
+            <div class="perf-compare-empty" id="perf-compare-empty">Your completed local answers will be saved on this browser.</div>
+          </section>
         </div>
       </div>
     `;
@@ -1610,16 +1829,21 @@ export class PerfSidebar {
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          indexAxis: "y",
           animation: { duration: 220 },
           interaction: { mode: "index", intersect: false },
           scales: {
-            x: { grid: { display: false }, border: { display: false }, ticks: { color: PERF_CHART_TEXT, font: { size: 10 } } },
-          y: {
+            x: {
               beginAtZero: true,
               grid: { color: PERF_CHART_GRID },
               border: { display: false },
               title: { display: true, text: "Text pieces / sec", color: PERF_CHART_TEXT, font: { size: 10 } },
               ticks: { color: PERF_CHART_TEXT, maxTicksLimit: 5, font: { size: 10 } },
+            },
+            y: {
+              grid: { display: false },
+              border: { display: false },
+              ticks: { color: PERF_CHART_TEXT, font: { size: 11 }, padding: 8 },
             },
           },
           plugins: {
@@ -1645,8 +1869,8 @@ export class PerfSidebar {
     const bestSpeeds = allRecords.map(item => Number(item.bestSpeed) || 0);
     this.deviceComparisonChart.data.labels = counts.map(count => `${count}-device setup`);
     this.deviceComparisonChart.data.datasets = [
-      { label: "Average speed", data: averageSpeeds, backgroundColor: "rgba(42,69,224,.76)", borderColor: "#2a45e0", borderWidth: 1, borderRadius: 6, maxBarThickness: 34 },
-      { label: "Best speed", data: bestSpeeds, backgroundColor: "rgba(21,154,120,.72)", borderColor: "#159a78", borderWidth: 1, borderRadius: 6, maxBarThickness: 34 },
+      { label: "Average speed", data: averageSpeeds, backgroundColor: "rgba(42,69,224,.78)", borderColor: "#2a45e0", borderWidth: 1, borderRadius: 5, barThickness: 13, maxBarThickness: 18 },
+      { label: "Best speed", data: bestSpeeds, backgroundColor: "rgba(21,154,120,.72)", borderColor: "#159a78", borderWidth: 1, borderRadius: 5, barThickness: 13, maxBarThickness: 18 },
     ];
     this.deviceComparisonChart.update();
     if (chartEmpty) chartEmpty.hidden = allRecords.length > 0;
@@ -2043,8 +2267,12 @@ export class PerfSidebar {
       this.currentDeviceCount = Math.max(1, Number(opts.deviceCount) || this.clusterSize || this.devices.length || 1);
       const statusPill = typeof document !== 'undefined' ? document.getElementById('perf-status-pill') : null;
       const statusLabel = typeof document !== 'undefined' ? document.getElementById('perf-status-label') : null;
+      const liveState = typeof document !== 'undefined' ? document.getElementById('perf-live-state-label') : null;
+      const liveStatePill = typeof document !== 'undefined' ? document.querySelector('#perf-sidebar .perf-live-state') : null;
       if (statusPill) statusPill.classList.add('streaming');
       if (statusLabel) statusLabel.textContent = 'Writing';
+      if (liveState) liveState.textContent = 'Starting';
+      if (liveStatePill) liveStatePill.classList.add('streaming');
       const heroSub = typeof document !== 'undefined' ? document.getElementById('perf-hero-sub') : null;
       if (heroSub) {
         heroSub.textContent = this.backend === 'cloud'
@@ -2152,6 +2380,10 @@ export class PerfSidebar {
       
       this.updateDeviceReadouts(instantTps);
       this.renderShardFlow(instantTps);
+      const liveState = document.getElementById('perf-live-state-label');
+      const liveStatePill = document.querySelector('#perf-sidebar .perf-live-state');
+      if (liveState) liveState.textContent = 'Writing';
+      if (liveStatePill) liveStatePill.classList.add('streaming');
       this.renderLiveChart();
     } catch (e) {
       console.warn("perfSidebar.onToken failed:", e);
@@ -2167,8 +2399,12 @@ export class PerfSidebar {
         if (topBtn) topBtn.classList.remove('streaming');
         const statusPill = document.getElementById('perf-status-pill');
         const statusLabel = document.getElementById('perf-status-label');
+        const liveState = document.getElementById('perf-live-state-label');
+        const liveStatePill = document.querySelector('#perf-sidebar .perf-live-state');
         if (statusPill) statusPill.classList.remove('streaming');
         if (statusLabel) statusLabel.textContent = 'Ready';
+        if (liveState) liveState.textContent = 'Answer complete';
+        if (liveStatePill) liveStatePill.classList.remove('streaming');
         
         if (opts && opts.totalTokens !== undefined) {
           this.tokenCount = opts.totalTokens;
