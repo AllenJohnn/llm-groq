@@ -1,4 +1,4 @@
-# Working on WebSlice with an AI agent
+# Working on LLM ShardX with an AI agent
 
 Instructions for coding agents (Claude Code, Codex, Cursor, …). Humans: see [CONTRIBUTING.md](../CONTRIBUTING.md).
 

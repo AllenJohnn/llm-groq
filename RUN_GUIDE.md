@@ -1,12 +1,12 @@
-# WebSlice Multiplayer Setup Guide
+# LLM ShardX Multiplayer Setup Guide
 
-This guide explains how to host a WebSlice session on one laptop and allow another laptop over the internet to connect, join your room, and share the AI processing load.
+This guide explains how to host a LLM ShardX session on one laptop and allow another laptop over the internet to connect, join your room, and share the AI processing load.
 
-## Step 1: Start the WebSlice Host
+## Step 1: Start the LLM ShardX Host
 1. Open a terminal (Command Prompt or PowerShell) on the **Host Laptop**.
-2. Navigate to your WebSlice directory:
+2. Navigate to your LLM ShardX directory:
    ```bash
-   cd "D:\New folder\webslice"
+   cd "D:\New folder\llm-shardx"
    ```
 3. Start the local server:
    ```bash
@@ -19,7 +19,7 @@ To allow the second laptop to connect without dealing with Windows Firewall or r
 1. Open a **second** terminal window on the Host Laptop.
 2. Navigate to the project directory again:
    ```bash
-   cd "D:\New folder\webslice"
+   cd "D:\New folder\llm-shardx"
    ```
 3. Start the tunnel on port 8080:
    ```bash

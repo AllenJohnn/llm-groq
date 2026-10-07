@@ -1,4 +1,4 @@
-# WebSlice — the cross-network plan
+# LLM ShardX — the cross-network plan
 
 Implementation-ready design for (A) transport and telemetry, (B) lap overlap / speculative pipelining against the actual protocol, and (C) same-network placement for 2–6 devices. Everything is grounded in the code as it stands at `bello` (`room.js` 1179 lines, `engine/qwen35.js` 963 lines, `docs/protocol.md`, `docs/kernel-plan-3.md` §"Continuous Speculation"). Numbers that are not measured in-repo are marked **UNCERTAIN** and carry the instrumentation that closes them.
 
@@ -221,7 +221,7 @@ Mid-lap abort: `_runBatchAndRead` gains `(shouldAbort, groups=4)` and submits th
 | the canonical column is never cancelled mid-lap | a lap is dropped before start, aborted at a group boundary (then restored), or completes |
 | chunked frames | every part carries `lap`/`epoch`; a stale group's tail is discarded chunk by chunk |
 
-⚠ **The spec claims "the canonical column is never rejected (PipeInfer invariant)". That does not hold for gambled children:** a child's column 0 is `d_{K+1}`, a *draft* standing in for the parent's bonus token, and the whole child is cancelled when the gamble loses. WebSlice has no uncancellable canonical run; forward progress on a lost gamble is the re-issued sequential lap. This is exactly the `(1−q)(T_seq + δ)` term in §4.
+⚠ **The spec claims "the canonical column is never rejected (PipeInfer invariant)". That does not hold for gambled children:** a child's column 0 is `d_{K+1}`, a *draft* standing in for the parent's bonus token, and the whole child is cancelled when the gamble loses. LLM ShardX has no uncancellable canonical run; forward progress on a lost gamble is the re-issued sequential lap. This is exactly the `(1−q)(T_seq + δ)` term in §4.
 
 ### 3.5 Host state machine
 

@@ -1,4 +1,4 @@
-/* WebSlice marketing surface: near-black OLED canvas with a quiet silver signal. */
+/* LLM ShardX marketing surface: near-black OLED canvas with a quiet silver signal. */
 :root {
   color-scheme: dark;
   --paper: oklch(0.075 0.005 260);

@@ -1,6 +1,6 @@
 cff-version: 1.2.0
-title: "WebSlice: peer-to-peer LLM inference across browser tabs"
-message: "If you use WebSlice in your work, please cite it as below."
+title: "LLM ShardX: peer-to-peer LLM inference across browser tabs"
+message: "If you use LLM ShardX in your work, please cite it as below."
 type: software
 authors:
   - family-names: John

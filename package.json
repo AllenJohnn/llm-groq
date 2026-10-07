@@ -1,7 +1,7 @@
 {
-  "name": "webslice",
+  "name": "llm-shardx",
   "version": "0.2.0",
-  "description": "WebGPU-accelerated Sharded LLM Inference across Compute-constrained Edge devices.",
+  "description": "A Web-Based Platform for LLM Sharding and Deployment",
   "homepage": "https://webslice.ai",
   "repository": {
     "type": "git",

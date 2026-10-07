@@ -6,11 +6,11 @@ product
 
 ## Users
 
-Developers and independent model users who run WebSlice in browsers across phones, laptops, and desktops. They create or join a room, contribute device memory and compute, select a local model, and follow a shared answer.
+Developers and independent model users who run LLM ShardX in browsers across phones, laptops, and desktops. They create or join a room, contribute device memory and compute, select a local model, and follow a shared answer.
 
 ## Product Purpose
 
-WebSlice coordinates browser devices to run language models locally across their GPUs. Success means users can understand room membership, model readiness, and answer progress at a glance, then ask a question with confidence that prompts stay within their room.
+LLM ShardX coordinates browser devices to run language models locally across their GPUs. Success means users can understand room membership, model readiness, and answer progress at a glance, then ask a question with confidence that prompts stay within their room.
 
 ## Brand Personality
 

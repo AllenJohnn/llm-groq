@@ -1,4 +1,4 @@
-# WebSlice: exact decode across many devices — ranked report on 33 candidate ideas
+# LLM ShardX: exact decode across many devices — ranked report on 33 candidate ideas
 
 > Generated 2026-09-04 by a 107-agent review: 7 generators (numerics, systems, speculation, architecture, distributed, coding theory, contrarian), 3 skeptics per idea (exactness, latency math, prior art), one synthesis. Skeptics ran real experiments where they could (parareal-over-depth on SmolLM-135M and Qwen3-0.6B on the GB10; dcSCTP source audit). Constraint for every idea: the token stream must be identical to the serial forward pass.
 

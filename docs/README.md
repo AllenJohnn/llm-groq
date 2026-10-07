@@ -1,7 +1,7 @@
 # Docs
 
 - [architecture.md](architecture.md): how a token flows through the engine and the room.
-- [tech-stack.md](tech-stack.md): what WebSlice is built from and why.
+- [tech-stack.md](tech-stack.md): what LLM ShardX is built from and why.
 - [kernels.md](kernels.md): the WebGPU engine: kernel families and every trick with its measured effect.
 - [protocol.md](protocol.md): room lifecycle and compute frames.
 - [models.md](models.md): supported models and how to add one.

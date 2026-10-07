@@ -2,7 +2,7 @@
 
 I have measured evidence. Writing the design now.
 
-# WebSlice: the 30 ms and the wire — implementation-ready design
+# LLM ShardX: the 30 ms and the wire — implementation-ready design
 
 All numbers below marked **[M]** were measured this session on the GB10 (DGX Spark, Deno 2.9.5 / wgpu / Vulkan, GPU otherwise idle, Qwen 3.8 27B Q4_0, full 64 layers). Probe scripts are at a scratch directory (not committed) and should be committed under `benchmarks/` before any of these numbers go in a paper. Numbers marked **[E]** are estimates. Numbers marked **UNCERTAIN** are not derivable from the repo or this session.
 

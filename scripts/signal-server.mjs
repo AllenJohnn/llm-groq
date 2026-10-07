@@ -1,4 +1,4 @@
-// Local PeerServer for WebSlice Zero-Config Offline & Local Signaling
+// Local PeerServer for LLM ShardX Zero-Config Offline & Local Signaling
 // Eliminates reliance on public 0.peerjs.com, works completely offline.
 // Usage:
 //   node scripts/signal-server.mjs [--port 9000]
@@ -10,7 +10,7 @@ const port = parseInt(process.argv.includes("--port")
   : (process.env.SIGNAL_PORT || 9000), 10);
 
 console.log("\n=======================================================");
-console.log("       WebSlice Local Signaling Server (PeerServer)    ");
+console.log("       LLM ShardX Local Signaling Server (PeerServer)    ");
 console.log("=======================================================\n");
 
 const clients = new Map();
@@ -22,8 +22,8 @@ const peerServer = PeerServer({
     origin: true,
   },
 }, (server) => {
-  console.log(`[WebSlice Signal] Running on ws://localhost:${port}/ (HTTP: http://localhost:${port}/)`);
-  console.log(`[WebSlice Signal] Connect clients via: ?signal=localhost:${port}\n`);
+  console.log(`[LLM ShardX Signal] Running on ws://localhost:${port}/ (HTTP: http://localhost:${port}/)`);
+  console.log(`[LLM ShardX Signal] Connect clients via: ?signal=localhost:${port}\n`);
 });
 
 peerServer.on("connection", (client) => {
@@ -41,6 +41,6 @@ peerServer.on("disconnect", (client) => {
 });
 
 process.on("SIGINT", () => {
-  console.log("\n[WebSlice Signal] Shutting down...");
+  console.log("\n[LLM ShardX Signal] Shutting down...");
   process.exit(0);
 });

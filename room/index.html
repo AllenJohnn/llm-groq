@@ -6,7 +6,7 @@
 
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<title>WebGPU-accelerated Sharded LLM Inference across Compute-constrained Edge devices (WebSLICE)</title>
+<title>WebGPU-accelerated Sharded LLM Inference across Compute-constrained Edge devices (LLM ShardX)</title>
 <script src="/vendor/peerjs.min.js"></script>
 <script>
 if (typeof Peer === "undefined") {
@@ -61,7 +61,7 @@ window.sliceStart = function(create) {
     window.__roomStart(create);
   } else {
     var s = document.getElementById('join-status');
-    if (s) s.textContent = 'Loading WebSLICE engine… please click again in a moment';
+    if (s) s.textContent = 'Loading LLM ShardX engine… please click again in a moment';
   }
 };
 </script>
@@ -1018,18 +1018,18 @@ window.sliceStart = function(create) {
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-  <link rel="stylesheet" href="/room/amoled.css?v=20261007-resizable">
+  <link rel="stylesheet" href="/room/amoled.css?v=20261007-room-ui">
 </head>
 <body>
 
 <header>
-  <div class="logo"><a href="/">WebSLICE</a></div>
-  <div class="tagline">WebSLICE room</div>
+  <div class="logo"><a href="/">LLM ShardX</a></div>
+  <div class="tagline">LLM ShardX room</div>
   <div class="spacer"></div>
   <div id="topbar-peers" class="topbar-peers"></div>
   <div id="topbar-download" class="topbar-download"></div>
   <div id="room-badge" title="Click to copy room code"></div>
-  <a id="gh-link" href="https://github.com/AllenJohnn/llm" target="_blank" rel="noopener" aria-label="WebSLICE on GitHub" title="source on GitHub"><svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
+  <a id="gh-link" href="https://github.com/AllenJohnn/llm" target="_blank" rel="noopener" aria-label="LLM ShardX on GitHub" title="source on GitHub"><svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
   <div id="topbar-progress-line" class="topbar-progress-line"><div id="topbar-progress-fill" class="topbar-progress-fill"></div></div>
 </header>
 
@@ -1043,7 +1043,7 @@ window.sliceStart = function(create) {
     
     <div class="kicker text-xs tracking-[0.25em] text-[#2b4eff] font-bold mb-4 uppercase">Mesh Inference</div>
     
-    <h1 class="text-5xl font-extrabold tracking-tight mb-3 text-[#16171c]">Start a <span class="text-[#2b4eff]">WebSLICE</span></h1>
+    <h1 class="text-5xl font-extrabold tracking-tight mb-3 text-[#16171c]">Start a <span class="text-[#2b4eff]">LLM ShardX</span></h1>
     <p class="text-base text-[#8b877a] text-center mb-8 max-w-[340px]">One room code. Every device that types it becomes part of one machine.</p>
     
     <div class="w-full flex flex-col gap-4 mb-8">
@@ -1082,26 +1082,34 @@ window.sliceStart = function(create) {
       <div class="side-hint">share this code</div>
       <button id="split-demo-btn" type="button" style="display:none; font-family:var(--mono); font-size:11px; font-weight:500; padding:6px 10px; border-radius:8px; background:var(--accent); color:#fff; border:none; cursor:pointer; margin-top:6px;" title="Open a 2nd worker tab side-by-side to demonstrate cooperative inference">+ Split Demo Tab</button>
     </div>
-    <div class="side-k" id="devices-k">DEVICES</div>
+    <div class="side-k" id="devices-k"><span>DEVICES</span><span id="devices-count" class="devices-count">1 online</span></div>
     <div id="peers"></div>
     <div id="ai-panel">
       <div class="side-k" style="display:flex;align-items:center;justify-content:space-between;width:100%;">
-        <span>MODEL</span>
+        <span>MODEL &amp; COMPUTE</span>
         <span class="model-groq-badge" id="model-groq-badge" style="font-size:10px; font-weight:600; text-transform:none; color:var(--accent, #10b981); background:rgba(16,185,129,0.12); padding:2px 7px; border-radius:4px; letter-spacing:0.02em;">Model mode</span>
       </div>
       <div id="ai-head">
-      <span id="ai-title">WEBSLICE MODEL</span>
+      <span id="ai-title">LLM ShardX MODEL</span>
       <select id="ai-model">
+        <optgroup label="Fast and compact">
         <option value="qwen3-0.6b">Qwen3 0.6B · Q8</option>
         <option value="qwen3-1.7b">Qwen3 1.7B · Q8</option>
+        <option value="smollm-135m">SmolLM 135M · bf16 (270 MB)</option>
+        </optgroup>
+        <optgroup label="General purpose">
         <option value="qwen3-4b">Qwen3 4B · Q8</option>
-        <option value="qwen2.5-coder-1.5b">Qwen2.5 Coder 1.5B · Q4 (fast mirror)</option>
+        <option value="qwen3.8-27b">Qwen 3.8 27B · Q4</option>
+        </optgroup>
+        <optgroup label="Coding">
+        <option value="qwen2.5-coder-1.5b">Qwen2.5 Coder 1.5B · Q4 (fast)</option>
         <option value="qwen2.5-coder-7b">Qwen2.5 Coder 7B · Q4 (Code &amp; Web)</option>
+        <option value="phi-4-mini">Phi-4 mini · Q4 (coding &amp; reasoning)</option>
+        </optgroup>
+        <optgroup label="Deep reasoning">
         <option value="deepseek-r1-distill-qwen-14b">DeepSeek-R1 Distill Qwen 14B · Q4 (Reasoning)</option>
-        <option value="qwq-32b">Qwen QwQ 32B &middot; Q4 (Deep Reasoning)</option>
-          <option value="phi-4-mini">Phi-4 mini &middot; Q4 (coding & reasoning)</option>
-          <option value="qwen3.8-27b">Qwen 3.8 27B &middot; Q4</option>
-          <option value="smollm-135m">SmolLM 135M &middot; bf16 (Fast Test &middot; 270 MB)</option>
+        <option value="qwq-32b">Qwen QwQ 32B · Q4</option>
+        </optgroup>
       </select>
       <div class="sidebar-fallback-card" id="sidebar-fallback-card" title="Choose local or cloud model mode">
         <div class="sfc-header">
@@ -1119,9 +1127,9 @@ window.sliceStart = function(create) {
         <div id="need-bar"><div id="need-fill"></div></div>
         <div id="need-text">needs ~0.8 GB · room gives 0 GB</div>
       </div>
-      <span id="ai-status">split across every device in the room</span>
+      <span id="ai-status" role="status" aria-live="polite">Choose a model to see its memory needs.</span>
       <div class="side-hint" id="mode-disclosure" style="margin-top:2px">Choose how this model runs.</div>
-      <button id="ai-start" class="primary">start</button>
+      <button id="ai-start" class="primary">Load model</button>
     </div>
     <div id="host-controls" class="host-section" hidden>
       <label for="ai-visibility">who sees the chat</label>
@@ -1148,12 +1156,12 @@ window.sliceStart = function(create) {
         <span class="phone-clock" id="phone-clock">11:30</span>
         <div class="phone-island">
           <span class="island-camera"></span>
-          <span class="island-title">WebSLICE Chat</span>
+          <span class="island-title">LLM ShardX Chat</span>
         </div>
         <span class="phone-net">5G 📶</span>
       </div>
       <div id="chat-log"></div>
-      <div id="ai-empty">pick a model and press start</div>
+      <div id="ai-empty" role="region" aria-label="Chat welcome"></div>
       <div id="load-card">
         <div class="lc-k">DOWNLOADING <span id="lc-model"></span></div>
         <div id="lc-rows"></div>
@@ -1203,7 +1211,7 @@ window.sliceStart = function(create) {
         s.style.color = isErr ? 'var(--err, #d1242f)' : 'var(--warn, #b58500)';
         s.innerHTML = msg;
       }
-      console.warn('[WebSLICE Loader]', msg);
+      console.warn('[LLM ShardX Loader]', msg);
     };
 
     const roomUrl = '/room.js?v=' + Date.now();
@@ -1282,7 +1290,7 @@ window.sliceStart = function(create) {
       if (s && (s.textContent.includes('Loading') || s.textContent.includes('HTTP'))) {
         s.textContent = '';
       }
-      console.log('WebSLICE room module loaded and initialized successfully');
+      console.log('LLM ShardX room module loaded and initialized successfully');
     } catch (e) {
       notify(`<b>Error in room.js:</b> ${e.message || e}`);
     }

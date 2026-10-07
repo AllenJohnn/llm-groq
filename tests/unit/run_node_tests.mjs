@@ -27,16 +27,19 @@ async function test(name, fn) {
 }
 
 // 1. Models tests
-await test("models: catalog has all 10 expected models", () => {
+await test("models: catalog has all 11 expected models", () => {
   const expected = [
     "qwen3-0.6b", "qwen3-1.7b", "qwen3-4b", "qwen2.5-coder-1.5b",
     "qwen2.5-coder-7b", "deepseek-r1-distill-qwen-14b", "qwq-32b",
-    "phi-4-mini", "qwen3.8-27b", "smollm-135m"
+    "phi-4-mini", "qwen3.8-27b", "qwen3.6-35b-moe", "smollm-135m"
   ];
   for (const k of expected) {
     assert(MODELS[k], `Missing model key: ${k}`);
     assert(NEED_GB[k] > 0, `Missing NEED_GB for: ${k}`);
   }
+  const moe = MODELS["qwen3.6-35b-moe"];
+  assert(moe.kind === "qwen35" && moe.gguf.includes("Qwen_Qwen3.6-35B-A3B-Q4_0.gguf"), "Qwen3.6 MoE local-engine mapping is missing");
+  assert(NEED_GB["qwen3.6-35b-moe"] === 22.5, "Qwen3.6 MoE room-memory requirement changed");
 });
 
 await test("models: Qwen2.5 Coder prefers the fast mirror and has an HF fallback", () => {
@@ -534,7 +537,8 @@ await test("perf-sidebar: generation life-cycle updates metrics and session aggr
   ps.onToken("Hello", 1);
   ps.onToken(" world", 2);
   assert(ps.tokenCount === 2, "tokenCount should be 2");
-  assert(ps.streamPoints.length === 2, "streamPoints should have recorded 2 tokens");
+  assert(ps.streamPoints.length === 1, "two token timestamps should produce one measured speed point");
+  assert(ps.streamPoints[0].tps > 0, "measured speed point should have a positive throughput");
 
   ps.onGenDone({ totalTokens: 2, totalSecs: 0.1, stats: "2 tok · 20.0 tok/s" });
   assert(ps.sessionTokens === 2, "sessionTokens should aggregate");

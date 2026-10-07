@@ -1413,6 +1413,7 @@ window.sliceStart = function(create) {
   }
 </style>
 <link rel="stylesheet" href="/site/css/room.css">
+<link rel="stylesheet" href="/styles/build-mode.css?v=20261008-build">
       <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 </head>
@@ -1424,6 +1425,7 @@ window.sliceStart = function(create) {
   <div class="room-view-tabs" role="group" aria-label="Room workspace">
     <button type="button" id="room-chat-tab" class="room-view-tab active" aria-pressed="true">Chat</button>
     <button type="button" id="room-performance-tab" class="room-view-tab" aria-pressed="false">Performance</button>
+    <button type="button" id="room-build-tab" class="room-view-tab" aria-pressed="false">Build</button>
   </div>
   <div class="spacer"></div>
   <div id="topbar-peers" class="topbar-peers"></div>
@@ -1521,6 +1523,9 @@ window.sliceStart = function(create) {
         <optgroup label="General purpose">
         <option value="qwen3-4b">Qwen3 4B · Q8</option>
         <option value="qwen3.8-27b">Qwen 3.8 27B · Q4</option>
+        </optgroup>
+        <optgroup label="Advanced · needs ~22.5 GB across the room">
+        <option value="qwen3.6-35b-moe">Qwen3.6 35B MoE · Q4</option>
         </optgroup>
         <optgroup label="Coding">
         <option value="qwen2.5-coder-1.5b">Qwen2.5 Coder 1.5B · Q4 (fast)</option>
@@ -1660,6 +1665,16 @@ window.sliceStart = function(create) {
       ['/engine/wgsl/gemm.js', 'engine/wgsl/gemm.js'],
       ['/engine/wgsl/coop.js', 'engine/wgsl/coop.js'],
       ['/engine/wgsl/qwen35.js', 'engine/wgsl/qwen35.js'],
+      ['/engine/wgsl/prune.js', 'engine/wgsl/prune.js'],
+      ['/engine/wgsl/gemm_sgm.js', 'engine/wgsl/gemm_sgm.js'],
+      ['/engine/wgsl/gemm_wide.js', 'engine/wgsl/gemm_wide.js'],
+      ['/engine/wgsl/layer_fuse.js', 'engine/wgsl/layer_fuse.js'],
+      ['/engine/wgsl/moe.js', 'engine/wgsl/moe.js'],
+      ['/engine/wgsl/attn_tile.js', 'engine/wgsl/attn_tile.js'],
+      ['/engine/wgsl/attn_dec.js', 'engine/wgsl/attn_dec.js'],
+      ['/engine/wgsl/moe_group.js', 'engine/wgsl/moe_group.js'],
+      ['/engine/compile.js', 'engine/compile.js'],
+      ['/engine/topk.js', 'engine/topk.js'],
       ['/engine/quantize.js', 'engine/quantize.js'],
       ['/engine/sampling.js', 'engine/sampling.js'],
       ['/engine/tokenizer.js', 'engine/tokenizer.js'],
@@ -1679,7 +1694,8 @@ window.sliceStart = function(create) {
       ['/room/transport.js', 'room/transport.js'],
       ['/room/groq.js', 'room/groq.js'],
       ['/room/groq-client.js', 'room/groq-client.js'],
-      ['/room/perf-sidebar.js', 'room/perf-sidebar.js']
+      ['/room/perf-sidebar.js', 'room/perf-sidebar.js'],
+      ['/room/build-mode.js', 'room/build-mode.js']
     ];
 
     // 2. Test fetching all imported submodules in parallel

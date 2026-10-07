@@ -1,4 +1,4 @@
-// Groq API client for streaming chat completions in WebSLICE.
+// Groq API client for streaming chat completions in LLM ShardX.
 // Calls the server-side proxy endpoint (/api/groq) by default so GROQ_API_KEY is never exposed in client JS.
 // Can also call Groq directly if an explicit apiKey is supplied.
 
@@ -36,7 +36,7 @@ export function formatGroqError(status, data, model) {
   }
   if (status === 404) {
     if (typeof rawMsg === "string" && (rawMsg.includes("HTML") || rawMsg.includes("Cannot POST") || rawMsg.includes("404") || rawMsg.includes("not found on this server"))) {
-      return `Proxy endpoint (/api/groq) returned 404 (Not Found). Please ensure the WebSLICE server is running via "node scripts/server.mjs" (or "npm run serve") on http://localhost:8080. (${rawMsg})`;
+      return `Proxy endpoint (/api/groq) returned 404 (Not Found). Please ensure the LLM ShardX server is running via "node scripts/server.mjs" (or "npm run serve") on http://localhost:8080. (${rawMsg})`;
     }
     return `Model "${model}" not found on Groq (404). This model id may not be supported by Groq. (${rawMsg})`;
   }

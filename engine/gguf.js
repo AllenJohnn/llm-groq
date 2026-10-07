@@ -187,11 +187,16 @@ export const GGML_OUTPUT = "output.weight"; // absent when embeddings are tied
 // bytesOf: async (info) => Uint8Array of that tensor's data (local slice or
 // HTTP range fetch — same contract as the safetensors shard path).
 export async function ggufEntry(G, bytesOf, name, optional, onBytes = () => {}, forceCPU = false) {
-  const info = G.tensors[name];
-  if (!info) {
+  const source = G.tensors[name];
+  if (!source) {
     if (optional) return null;
     throw new Error("missing tensor " + name);
   }
+  // Qwen MoE experts are stacked as [expert, output, input]. Treat them as a
+  // matrix of expert-output rows so quantized blocks stay packed for routing.
+  const info = source.shape.length === 3
+    ? { ...source, shape: [source.shape[0] * source.shape[1], source.shape[2]] }
+    : source;
   // the embedding stays on the CPU too (per-token row lookups), so it takes the normal path
   if (!forceCPU && G.streamEntry && name !== GGML_EMBED && info.shape.length === 2 && (info.ggmlType === GGML_Q8_0 || info.ggmlType === GGML_Q4_0)) {
     let reported = 0;
@@ -497,13 +502,18 @@ export function quantizeQ8(data) {
 
 
 // ---------- qwen3.5/3.8 (hybrid delta-net) shard loader ----------
-export function qwen35LayerNames(i, forceFull = false) {
+export function qwen35LayerNames(i, forceFull = false, moe = false, interval = 4) {
   const p = `blk.${i}.`;
-  const isFull = forceFull || i % 4 === 3;
+  const isFull = forceFull || i % interval === interval - 1;
   const shared = {
     attnNorm: p + "attn_norm.weight",
     postNorm: p + "post_attention_norm.weight",
-    ffnGate: p + "ffn_gate.weight", ffnUp: p + "ffn_up.weight", ffnDown: p + "ffn_down.weight",
+    ...(moe ? {
+      router: p + "ffn_gate_inp.weight",
+      expGate: p + "ffn_gate_exps.weight", expUp: p + "ffn_up_exps.weight", expDown: p + "ffn_down_exps.weight",
+      shGate: p + "ffn_gate_shexp.weight", shUp: p + "ffn_up_shexp.weight", shDown: p + "ffn_down_shexp.weight",
+      shRouter: p + "ffn_gate_inp_shexp.weight",
+    } : { ffnGate: p + "ffn_gate.weight", ffnUp: p + "ffn_up.weight", ffnDown: p + "ffn_down.weight" }),
   };
   if (isFull) return { ...shared, isFull,
     wq: p + "attn_q.weight", wk: p + "attn_k.weight", wv: p + "attn_v.weight",
@@ -517,18 +527,33 @@ export function qwen35LayerNames(i, forceFull = false) {
     wOut: p + "ssm_out.weight" };
 }
 
-export async function qwen35Weights(G, bytesOf, { lo, hi, hasEmbed, hasHead, mtp = false }, onProgress = () => {}, onEntry = null) {
+export async function qwen35Weights(G, bytesOf, { lo, hi, hasEmbed, hasHead, mtp = false, experts = null }, onProgress = () => {}, onEntry = null) {
   let fetched = 0;
   const entry = async (name, optional) => {
     const e = await ggufEntry(G, bytesOf, name, optional, (b) => { fetched += b; onProgress(fetched); });
     if (e && onEntry) onEntry(e, name);
     return e;
   };
+  const moe = (G.meta["qwen35.expert_count"] || 0) > 0;
+  const interval = G.meta["qwen35.full_attention_interval"] || 4;
   const loadLayer = async (i, forceFull = false) => {
-    const N = qwen35LayerNames(i, forceFull);
-    const L = { isFull: N.isFull,
-      attnNorm: await entry(N.attnNorm), postNorm: await entry(N.postNorm),
-      ffnGate: await entry(N.ffnGate), ffnUp: await entry(N.ffnUp), ffnDown: await entry(N.ffnDown) };
+    const N = qwen35LayerNames(i, forceFull, moe, interval);
+    const L = { isFull: N.isFull, attnNorm: await entry(N.attnNorm), postNorm: await entry(N.postNorm) };
+    if (moe) {
+      L.moe = true;
+      L.router = await entry(N.router);
+      if (experts && !forceFull && experts.has(i)) {
+        const nExp = G.meta["qwen35.expert_count"];
+        for (const [key, part] of [["expGate", "gate"], ["expUp", "up"], ["expDown", "down"]])
+          L[key] = experts.park(i, part, await ggufEntry(G, bytesOf, N[key], false, (b) => { fetched += b; onProgress(fetched); }, true), nExp);
+      } else {
+        L.expGate = await entry(N.expGate); L.expUp = await entry(N.expUp); L.expDown = await entry(N.expDown);
+      }
+      L.shGate = await entry(N.shGate, true); L.shUp = await entry(N.shUp, true); L.shDown = await entry(N.shDown, true);
+      L.shRouter = await entry(N.shRouter, true);
+    } else {
+      L.ffnGate = await entry(N.ffnGate); L.ffnUp = await entry(N.ffnUp); L.ffnDown = await entry(N.ffnDown);
+    }
     if (N.isFull) {
       L.wq = await entry(N.wq); L.wk = await entry(N.wk); L.wv = await entry(N.wv);
       L.wo = await entry(N.wo);
@@ -569,10 +594,14 @@ export async function qwen35Weights(G, bytesOf, { lo, hi, hasEmbed, hasHead, mtp
   return out;
 }
 
+export function qwen35NamesFor(G, i, forceFull = false) {
+  return qwen35LayerNames(i, forceFull, (G.meta["qwen35.expert_count"] || 0) > 0, G.meta["qwen35.full_attention_interval"] || 4);
+}
+
 export function qwen35ShardBytes(G, { lo, hi, hasEmbed, hasHead, mtp = false }) {
   let total = 0;
   const add = (n) => { if (G.tensors[n]) total += G.tensors[n].byteLength; };
-  for (let i = lo; i < hi; i++) Object.values(qwen35LayerNames(i)).forEach((v) => { if (typeof v === "string") add(v); });
+  for (let i = lo; i < hi; i++) Object.values(qwen35NamesFor(G, i)).forEach((v) => { if (typeof v === "string") add(v); });
   if (hasEmbed || hasHead) add(GGML_EMBED);
   if (hasHead) { add(GGML_FINAL_NORM); add(GGML_OUTPUT); }
   if (mtp && hasHead) total += qwen35MtpBytes(G);
@@ -585,7 +614,7 @@ export function qwen35MtpBytes(G) {
   if (!G.tensors[p + "eh_proj.weight"]) return 0;
   let total = 0;
   const add = (n) => { if (G.tensors[n]) total += G.tensors[n].byteLength; };
-  Object.values(qwen35LayerNames(N, true)).forEach((v) => { if (typeof v === "string") add(v); });
+  Object.values(qwen35NamesFor(G, N, true)).forEach((v) => { if (typeof v === "string") add(v); });
   ["eh_proj", "enorm", "hnorm", "shared_head_norm"].forEach((n) => add(p + n + ".weight"));
   return total;
 }

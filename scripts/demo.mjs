@@ -1,4 +1,4 @@
-// WebSlice Complete Demonstration Launcher
+// LLM ShardX Complete Demonstration Launcher
 // Starts both the static web server and local PeerServer signaling server,
 // and outputs exact URLs for single-system and multi-device demonstrations.
 // Usage:
@@ -39,7 +39,7 @@ function getLocalIp() {
 const localIp = getLocalIp();
 
 console.log("\n╔══════════════════════════════════════════════════════════════════╗");
-console.log("║               WebSlice Unified Demonstration Suite               ║");
+console.log("║               LLM ShardX Unified Demonstration Suite               ║");
 console.log("║         Decentralized Browser-Native P2P LLM Inference           ║");
 console.log("╚══════════════════════════════════════════════════════════════════╝\n");
 

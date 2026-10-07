@@ -1,6 +1,6 @@
-# Contributing to WebSlice
+# Contributing to LLM ShardX
 
-Thanks for helping. WebSlice is a from-scratch WebGPU inference engine plus a peer-to-peer runtime that runs large models across browser tabs. Most useful contributions fall into: kernels, model support, the room protocol, the site, docs, and benchmark reports from hardware we do not have.
+Thanks for helping. LLM ShardX is a from-scratch WebGPU inference engine plus a peer-to-peer runtime that runs large models across browser tabs. Most useful contributions fall into: kernels, model support, the room protocol, the site, docs, and benchmark reports from hardware we do not have.
 
 ## Before you start
 

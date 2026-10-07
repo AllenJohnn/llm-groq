@@ -9,6 +9,7 @@ export const NEED_GB = {
   "deepseek-r1-distill-qwen-14b": 9.5,
   "qwq-32b": 21.0,
   "qwen3.8-27b": 16.5,
+  "qwen3.6-35b-moe": 22.5,
   "phi-4-mini": 3.0,
   "smollm-135m": 0.3,
 };
@@ -79,6 +80,9 @@ export const MODELS = {
   "qwen3.8-27b": { label: "Qwen 3.8 27B · Q4", kind: "qwen35", thinking: false,
     gguf: "https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/resolve/main/Qwen3.8-27B-Q4_0.gguf",
     ggufFallback: "https://hf-mirror.com/unsloth/Qwen3.8-27B-GGUF/resolve/main/Qwen3.8-27B-Q4_0.gguf", cfg: "https://huggingface.co/Qwen/Qwen2.5-32B-Instruct/resolve/main/config.json", tok: "https://huggingface.co/Qwen/Qwen2.5-32B-Instruct/resolve/main/tokenizer.json" },
+  "qwen3.6-35b-moe": { label: "Qwen3.6 35B MoE · Q4 (Advanced)", kind: "qwen35", thinking: false,
+    gguf: "https://huggingface.co/bartowski/Qwen_Qwen3.6-35B-A3B-GGUF/resolve/main/Qwen_Qwen3.6-35B-A3B-Q4_0.gguf",
+    ggufFallback: "https://hf-mirror.com/bartowski/Qwen_Qwen3.6-35B-A3B-GGUF/resolve/main/Qwen_Qwen3.6-35B-A3B-Q4_0.gguf" },
 };
 
 // Context window per room, in tokens: prompt + answer. Each full-attention layer keeps K and V
@@ -100,6 +104,7 @@ export const LOCAL_CANDIDATES = {
   "qwq-32b": ["/models/qwq-32b.gguf", "/models/Qwen_QwQ-32B-Q4_0.gguf", "/models/qwq32b/model.gguf"],
   "phi-4-mini": ["/models/phi4mini/model.gguf", "/models/microsoft_Phi-4-mini-instruct-Q4_0.gguf", "/models/Phi-4-mini-instruct-Q4_0.gguf", "/models/phi-4-mini-instruct-Q4_0.gguf", "/models/phi-4-mini.gguf"],
   "qwen3.8-27b": ["/models/qwen3.8-27b.gguf", "/models/Qwen3.8-27B-Q4_0.gguf", "/models/q38/model.gguf"],
+  "qwen3.6-35b-moe": ["/models/qwen3.6-35b-moe.gguf", "/models/Qwen_Qwen3.6-35B-A3B-Q4_0.gguf", "/models/qwen36/model.gguf"],
   "smollm-135m": ["/models/smollm-135m.safetensors", "/models/model.safetensors", "/models/model/model.safetensors"],
 };
 

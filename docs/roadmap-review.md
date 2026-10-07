@@ -2,7 +2,7 @@
 
 Nine lenses (first-day user, operations, developer ecosystem, security, performance, mobile, community, research, competitive) read the repo and proposed gaps; 57 proposals were deduplicated against roadmap items 01–11 and merged into the 12 items below, which now live in `roadmap/12` – `roadmap/23`. Line numbers refer to the tree at the time of the review.
 
-# Roadmap gap analysis — WebSlice, launch week (Sep 7) and MLSys (Oct 30)
+# Roadmap gap analysis — LLM ShardX, launch week (Sep 7) and MLSys (Oct 30)
 
 Sources read: `roadmap/README.md` + items 01–11, `GOVERNANCE.md`, `SECURITY.md`, `docs/master-plan.md`, `docs/architecture.md`, `docs/protocol.md`, `docs/bench-log.md`, `CHANGELOG.md`, `README.md`, `room.js` (all 1179 lines), plus `room/models.js`, `room/sampling.js`, `p2p.html`, `vercel.json`, `RELEASE.md`, `.vercelignore`, `tests/`, `.github/` to verify citations. Line numbers below are from the current tree.
 

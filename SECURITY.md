@@ -1,10 +1,10 @@
 # Security
 
-This page is the honest version of what WebSlice does and does not protect. Read it before running a room with anyone you would not hand a shared document link to.
+This page is the honest version of what LLM ShardX does and does not protect. Read it before running a room with anyone you would not hand a shared document link to.
 
 ## Threat model
 
-A WebSlice room is a set of browsers that split one model's layers and pass the model's intermediate activations (the "hidden state") between them over direct WebRTC connections.
+A LLM ShardX room is a set of browsers that split one model's layers and pass the model's intermediate activations (the "hidden state") between them over direct WebRTC connections.
 
 **What the design gives you**
 
@@ -20,14 +20,14 @@ A WebSlice room is a set of browsers that split one model's layers and pass the 
 - **Noise or permutation "privacy" tricks are not used, deliberately.** They are known to be breakable and would give a false sense of safety.
 - **Peers learn metadata** beyond the shared transcript: device names, memory pledges, layer assignments, and timing, via the room roster.
 
-Consequently WebSlice does not, and will not, run open swarms of strangers by default, and does not claim to be "private", "encrypted end-to-end", or "verified".
+Consequently LLM ShardX does not, and will not, run open swarms of strangers by default, and does not claim to be "private", "encrypted end-to-end", or "verified".
 
 ## Model weights and supply chain
 
-Weights are downloaded by each browser directly from public Hugging Face repositories over HTTPS and cached in the browser's Cache API. WebSlice ships no weights. The exact file each room runs is identified by its URL and size stamp; verifying a content hash against the upstream repository is planned.
+Weights are downloaded by each browser directly from public Hugging Face repositories over HTTPS and cached in the browser's Cache API. LLM ShardX ships no weights. The exact file each room runs is identified by its URL and size stamp; verifying a content hash against the upstream repository is planned.
 
 ## Reporting a vulnerability
 
-Please report security issues privately to **allenjohnjoy2004@gmail.com** with "WebSlice security" in the subject. Include steps to reproduce and the browser/OS involved. You will get an acknowledgement within 72 hours. Please do not open a public issue for security reports until a fix is available.
+Please report security issues privately to **allenjohnjoy2004@gmail.com** with "LLM ShardX security" in the subject. Include steps to reproduce and the browser/OS involved. You will get an acknowledgement within 72 hours. Please do not open a public issue for security reports until a fix is available.
 
 Issues in the threat-model sense above (activation inversion, unverified peers) are known limitations rather than vulnerabilities; discussion of them is welcome in public issues.

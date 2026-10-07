@@ -393,6 +393,76 @@ body.perf-sidebar-resizing * { cursor: col-resize !important; user-select: none 
 #perf-sidebar .scaling-active-tag { color: white; background: #0a84ff; border-radius: 999px; }
 #perf-sidebar .perf-dev-meter-track { background: oklch(0.31 0.008 260 / 80%); }
 
+/* Room usability refinements: clearer device health, model setup, and empty state. */
+#side { gap: 10px; }
+#side-room { padding: 13px 15px; }
+#devices-k { display: flex; align-items: center; justify-content: space-between; }
+.devices-count { padding: 3px 8px; border-radius: 999px; color: var(--muted); background: oklch(0.22 0.008 260 / 76%); font: 500 10px/1.2 var(--sans); letter-spacing: 0; }
+.peer-card { padding: 12px; }
+.peer-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.peer-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.peer-name .pname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.device-state, .peer-gpu-badge {
+  display: inline-flex; align-items: center; gap: 5px; width: fit-content;
+  padding: 3px 8px; border-radius: 999px; border: 1px solid var(--glass-edge);
+  color: var(--muted); background: oklch(0.22 0.008 260 / 76%);
+  font: 550 10px/1.3 var(--sans); white-space: nowrap;
+}
+.device-state.connected { color: var(--text); }
+.device-state.connected::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #48c78e; }
+.device-state.joining::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #e3b45f; }
+.peer-gpu { margin-top: 6px; color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.peer-capabilities { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+.peer-gpu-badge { color: var(--text); }
+.peer-gpu-badge.unavailable { color: #f0b0a8; }
+.peer-memory { color: var(--muted); font-size: 10px; }
+.peer-memory b { color: var(--text); font-weight: 550; }
+.peer-memory .memory-label { color: var(--faint); }
+.peer-stats { display: flex; gap: 10px; margin-top: 8px; color: var(--faint); font-size: 10px; }
+.peer-stats b { color: var(--muted); font-weight: 500; }
+.peer-card .bw-btn { margin-top: 8px; padding: 5px 9px; border-radius: 999px; font-size: 10px; }
+#ai-panel { gap: 9px; }
+#ai-panel > .side-k { color: var(--muted); }
+#ai-model { min-height: 42px; padding: 9px 12px; }
+#ai-status { display: block; min-height: 16px; padding: 0 1px; line-height: 1.5; }
+#ai-status.status-ready { color: #78d6a9; }
+#ai-status.status-working { color: #e8c47b; }
+#ai-status.status-error { color: #f39c91; }
+#ai-start { min-height: 42px; border-radius: 13px; }
+#ai-need #need-text { line-height: 1.45; }
+#room-screen #chatpane-center, #room-screen #perf-sidebar { min-width: 0; }
+header .room-view-tabs { flex: 0 0 auto; }
+header .room-view-tab { min-height: 36px; }
+
+@media (max-width: 1100px) {
+  #side { padding: 12px; }
+  #side-room { gap: 8px; }
+}
+@media (max-width: 860px) {
+  #room-screen #side { order: 1; }
+  #room-screen #chatpane-center { order: 0; }
+  #peers { align-items: stretch; }
+  .peer-card { min-width: 190px; }
+  .peer-gpu { display: block; }
+  .peer-card .bw-btn { display: inline-flex; }
+  #ai-panel { display: grid !important; grid-template-columns: minmax(0,1fr) auto; align-items: center; }
+  #ai-panel > .side-k, #ai-model, #sidebar-fallback-card, #ai-need, #ai-status, #mode-disclosure, #ai-start { grid-column: 1 / -1; }
+  #ai-head { grid-column: 1 / -1; }
+  #room-screen.room-performance-view #chatpane-center { display: none; }
+  #room-screen.room-performance-view #perf-sidebar { order: 0; max-height: none; height: min(80svh, 900px); }
+}
+@media (max-width: 500px) {
+  header { gap: 8px; }
+  .logo { font-size: 16px; }
+  header .room-view-tab { min-width: 56px; padding: 6px 8px; font-size: 12px; }
+  #room-screen #chatpane-center { min-height: 0; }
+  #room-screen #chatpane { border-radius: 18px; }
+  #ai-row { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  #side { gap: 9px; }
+  #ai-panel { padding: 12px; }
+  .peer-card { min-width: 174px; }
+}
+
 @keyframes room-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @media (max-width: 1200px) {
   #room-screen[style*="display: flex"] { grid-template-columns: 230px minmax(0, 1fr); }

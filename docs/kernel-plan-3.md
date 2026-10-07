@@ -1566,7 +1566,7 @@ Files touched: `engine/qwen35.js` (Sec 3), new `engine/specpipe.js` (Sec 5.1), `
 
 # Spec: 8-wide prefill (assessment + exact change) and 2-pass GPU argmax for the 248320-logit LM head
 
-Scope: WebSlice engine (`engine/qwen35.js`, `engine.js`), Qwen3.8-27B Q4_0 on GB10 (Deno/wgpu/Vulkan) with Chrome + Safari 26 portability. Everything below is drawn from the verified findings and the engine code as it exists today; anything not directly measured is marked UNCERTAIN.
+Scope: LLM ShardX engine (`engine/qwen35.js`, `engine.js`), Qwen3.8-27B Q4_0 on GB10 (Deno/wgpu/Vulkan) with Chrome + Safari 26 portability. Everything below is drawn from the verified findings and the engine code as it exists today; anything not directly measured is marked UNCERTAIN.
 
 ---
 

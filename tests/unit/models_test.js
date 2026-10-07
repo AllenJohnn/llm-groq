@@ -3,16 +3,19 @@ import { pledgeOf, calculateClusterPledge, formatLayerRange, allocateLayers } fr
 
 const assert = (cond, msg) => { if (!cond) throw new Error(msg || "assertion failed"); };
 
-Deno.test("models: catalog has all 10 expected models", () => {
+Deno.test("models: catalog has all 11 expected models", () => {
   const expected = [
     "qwen3-0.6b", "qwen3-1.7b", "qwen3-4b", "qwen2.5-coder-1.5b",
     "qwen2.5-coder-7b", "deepseek-r1-distill-qwen-14b", "qwq-32b",
-    "phi-4-mini", "qwen3.8-27b", "smollm-135m"
+    "phi-4-mini", "qwen3.8-27b", "qwen3.6-35b-moe", "smollm-135m"
   ];
   for (const k of expected) {
     assert(MODELS[k], `Missing model key: ${k}`);
     assert(NEED_GB[k] > 0, `Missing NEED_GB for: ${k}`);
   }
+  const moe = MODELS["qwen3.6-35b-moe"];
+  assert(moe.kind === "qwen35" && moe.gguf.includes("Qwen_Qwen3.6-35B-A3B-Q4_0.gguf"), "Qwen3.6 MoE local-engine mapping is missing");
+  assert(NEED_GB["qwen3.6-35b-moe"] === 22.5, "Qwen3.6 MoE room-memory requirement changed");
 });
 
 Deno.test("models: Qwen3 models enable thinking-mode prompt handling", () => {

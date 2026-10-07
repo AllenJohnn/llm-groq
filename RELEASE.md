@@ -1,6 +1,6 @@
 # Releases
 
-WebSlice deploys through Vercel's git integration. Git tags mark milestones people can cite.
+LLM ShardX deploys through Vercel's git integration. Git tags mark milestones people can cite.
 
 | Push to | Deploys to |
 |---|---|

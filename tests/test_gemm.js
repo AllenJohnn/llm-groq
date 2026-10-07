@@ -12,10 +12,9 @@ const device = await adapter.requestDevice({ requiredLimits: {
   maxStorageBufferBindingSize: adapter.limits.maxStorageBufferBindingSize } });
 const unpack = await probeUnpack(device);
 const SH = ["17408x5120", "5120x17408", "5120x6144", "10240x5120", "6144x5120", "1024x5120"];
-const dIns = [...new Set(SH.map((s) => +s.split("x")[1]))];
-const splits = [...new Set(SH.map((s) => GEMM_S[s]))];
+const pairs = SH.map((shape) => [+shape.split("x")[1], GEMM_S[shape]]);
 
-const code = WGSL + coopWGSL(256, 4, 64, N, 1, unpack) + gemmWGSL({ N, splits, dIns, UNPACK: unpack });
+const code = WGSL + coopWGSL(256, 4, 64, N, 1, unpack) + gemmWGSL({ N, pairs, pairs8: pairs, UNPACK: unpack });
 device.pushErrorScope("validation");
 const mod = device.createShaderModule({ code });
 const info = await mod.getCompilationInfo();

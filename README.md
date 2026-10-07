@@ -124,8 +124,15 @@ The engine underneath is our own WGSL, not WebLLM, MLC or llama.cpp; the model w
 | Model | Format | Notes |
 |---|---|---|
 | Qwen 3.8 27B | GGUF Q4_0 | hybrid Gated-DeltaNet + attention; MTP speculation |
+| Qwen3.6 35B MoE | GGUF Q4_0 | advanced; routed-expert WebGPU path; needs about 22.5 GB pledged across the room |
 | Qwen3 0.6B / 1.7B / 4B | GGUF Q8_0 / Q4_0 | dense; used for golden tests |
 | SmolLM2 135M | safetensors f32 | smallest demo |
+
+## Build mode
+
+The room's **Build** tab lets the host ask the loaded model to create a small web app, edit its project files, and run an isolated live preview. Room peers see the same project and preview; only the host can change files or start a build. Files stay in the host browser's local storage. The preview console is captured for one automatic repair attempt, with Stop, Undo, and New project controls.
+
+Build prompts use the selected local model when Groq Cloud is off. Qwen3.6 35B MoE is an advanced option and only becomes available when the room pledges about 22.5 GB. Its WebGPU route is hardware-dependent; this repository change has not been exercised against a downloaded 35B model on a live device.
 
 Browsers: Chrome on macOS is the tested host. Safari on an iPhone joins a room and holds a small slice; Safari on a Mac reloads the tab under memory pressure when it holds the 27B's large slice, so do not host from it. Firefox and Linux Chromium need WebGPU enabled and are untested by us. Headless: Deno 2 (wgpu). See [docs/models.md](docs/models.md).
 

@@ -1,4 +1,4 @@
-// Zero-dependency local web & API server for WebSlice
+// Zero-dependency local web & API server for LLM ShardX
 // Serves static files, rewrites /room -> /p2p.html, and handles /api/groq proxy endpoint.
 import http from "node:http";
 import fs from "node:fs";
@@ -109,7 +109,13 @@ const server = http.createServer(async (req, res) => {
   // Security: Prevent path traversal and block sensitive files (.env, .git, etc.)
   const safePath = path.normalize(path.join(ROOT, pathname));
   const baseName = path.basename(safePath);
-  if (!safePath.startsWith(ROOT) || baseName.startsWith(".env") || baseName.startsWith(".git")) {
+
+  // Handle Windows drive letter case mismatch
+  const safePathNormalized = process.platform === 'win32' ? safePath.toLowerCase() : safePath;
+  const rootNormalized = process.platform === 'win32' ? ROOT.toLowerCase() : ROOT;
+
+  if (!safePathNormalized.startsWith(rootNormalized) || baseName.startsWith(".env") || baseName.startsWith(".git")) {
+    console.log(`403 FORBIDDEN: safePath=${safePathNormalized}, ROOT=${rootNormalized}, baseName=${baseName}`);
     res.statusCode = 403;
     res.end("Forbidden");
     return;
@@ -171,6 +177,6 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`[WebSlice Server] Listening on http://localhost:${PORT}/ (and http://0.0.0.0:${PORT}/)`);
-  console.log(`[WebSlice Server] Groq proxy active at http://localhost:${PORT}/api/groq`);
+  console.log(`[LLM ShardX Server] Listening on http://localhost:${PORT}/ (and http://0.0.0.0:${PORT}/)`);
+  console.log(`[LLM ShardX Server] Groq proxy active at http://localhost:${PORT}/api/groq`);
 });

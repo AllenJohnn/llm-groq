@@ -151,7 +151,7 @@ Files: harness `scratch/verify_delta_tile.js`; target `engine/qwen35.js` (kernel
 
 ---
 
-# Spec: Chunkwise-parallel Gated DeltaNet prefill (C = 4..16 tokens per pass) for the WebSlice WebGPU engine
+# Spec: Chunkwise-parallel Gated DeltaNet prefill (C = 4..16 tokens per pass) for the LLM ShardX WebGPU engine
 
 Scope: replaces the token loop of `dn_delta_mc` (engine/qwen35.js:294-333, 48 WGs x 128 threads, S in a read_write storage buffer) with a single-dispatch chunk kernel. Everything else in the DeltaNet block (conv, L2 norm, beta/decay, gated RMSNorm) is per-token and stays. Only verified findings are used; items not established by measurement or source are marked UNCERTAIN.
 
@@ -401,7 +401,7 @@ End-to-end: an 8-col pass is 210-222 ms with matvec_b at ~170 ms; the recurrence
 ## 7. Implementation checklist / risks
 
 - Codegen: emit the kernel from a JS template per C with literal indices for every private-array access; verify no `local memory` spill by timing against the register-resident sequential (a 2x slowdown = spilled).
-- Limits: request `maxComputeWorkgroupStorageSize` (32768) and, for P>=4, `maxComputeInvocationsPerWorkgroup`/`maxComputeWorkgroupSizeX` in `requestDevice`; pick variant A/B/C=8 fallback from `device.limits` at pipeline creation. WebSlice's requestDevice currently raises only buffer limits.
+- Limits: request `maxComputeWorkgroupStorageSize` (32768) and, for P>=4, `maxComputeInvocationsPerWorkgroup`/`maxComputeWorkgroupSizeX` in `requestDevice`; pick variant A/B/C=8 fallback from `device.limits` at pipeline creation. LLM ShardX's requestDevice currently raises only buffer limits.
 - Uniformity: remove the early return; guard nothing that precedes a barrier on `local_invocation_id`.
 - Pitch 129 for Ks/Qs; scale from the uniform; alpha from `dlm_decay`, not recomputed with exp().
 - Snapshots (S7) must be computed before S6 overwrites the S_0 registers; snapshot slot semantics (`frame.snap`, slot index per column) UNCERTAIN -- mirror the shipped kernel's stores exactly and verify with the shadow bit-compare harness.

@@ -1,6 +1,6 @@
-# WebSlice Demonstration & System Setup Guide
+# LLM ShardX Demonstration & System Setup Guide
 
-This guide provides end-to-end instructions for running and demonstrating **WebSlice** on a **single system** (via split browser tabs) or across **multiple devices** (laptop + phone/tablet over local Wi-Fi) with zero cloud dependency.
+This guide provides end-to-end instructions for running and demonstrating **LLM ShardX** on a **single system** (via split browser tabs) or across **multiple devices** (laptop + phone/tablet over local Wi-Fi) with zero cloud dependency.
 
 ---
 
@@ -20,7 +20,7 @@ This starts:
 
 ## 2. Model Management (Download & Test)
 
-WebSlice supports 10 distinct models. Any model can be downloaded locally:
+LLM ShardX supports 10 distinct models. Any model can be downloaded locally:
 
 ### View Model Catalog & Download Status
 ```bash

@@ -1,4 +1,4 @@
-# WebSlice Kernel-Optimization Week — Implementation Plan
+# LLM ShardX Kernel-Optimization Week — Implementation Plan
 
 **Baseline & ceiling math (calibrates every estimate below):** decode is weight-bandwidth-bound: ~15 GB of Q4_0/Q8_0 weights stream per token. At 2.5 tok/s we sustain ~38 GB/s effective — ~10% of a Max-class M-chip's ~400 GB/s. The hard ceiling is ~25 tok/s (400/15.2); browser stacks demonstrably reach 40-70% of roofline (WebLLM: 41.1 tok/s on 8B = 71% of native on M3 Max), so **10-13 tok/s is the realistic landing zone on Max-class; 15 is a stretch (needs 56% of peak); base-M/iPhone are capped at ~4-7 tok/s regardless of kernels; GB10 (~273 GB/s) lands 10-13.** Current bottleneck is NOT bandwidth — it's the maximally-uncoalesced 1-thread-per-row kernel (adjacent threads read addresses one full weight row apart, dIn bytes for Q8/dIn/2 for Q4) plus ~67 submits/token and a ~600KB/token (248320-vocab is ~1MB f32 — read back in full) logits sync.
 

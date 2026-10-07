@@ -1,6 +1,6 @@
 # Architecture
 
-WebSlice has two halves: an inference **engine** that runs a model (or a slice of one) on a device's GPU through WebGPU, and a **room runtime** that connects browsers over WebRTC and threads one generation through all of them.
+LLM ShardX has two halves: an inference **engine** that runs a model (or a slice of one) on a device's GPU through WebGPU, and a **room runtime** that connects browsers over WebRTC and threads one generation through all of them.
 
 ```
                  ┌──────────────────────── host browser ────────────────────────┐

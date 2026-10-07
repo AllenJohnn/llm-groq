@@ -1,4 +1,4 @@
-// WebSlice room: signaling, WebRTC mesh, layer assignment, weight streaming and the
+// LLM ShardX room: signaling, WebRTC mesh, layer assignment, weight streaming and the
 // generation loop (prefill, decode, speculative verify). Served with p2p.html at /room.
 import { autotuneCoop, makeTokenizer, DenseEngine, argmax, fetchModelShard, shardTensorNames, gpuSelfTest, kernelMicroTests }
   from "./engine/engine.js";
@@ -16,6 +16,7 @@ import { pledgeOf, calculateClusterPledge, formatLayerRange, allocateLayers } fr
 import { getGroqApiKey, setGroqApiKey, loadBrowserEnv } from "./room/groq.js";
 import { streamGroqChat, completeGroqChat, formatGroqError, GROQ_PROXY_URL } from "./room/groq-client.js";
 import { perfSidebar } from "./room/perf-sidebar.js?v=20261007-graphs";
+import { buildMode } from "./room/build-mode.js?v=20261008-build";
 
 // Private presentation flag for screen recordings and personal demos: /room?local-demo=1
 const LOCAL_DEMO_PRESENTATION = new URLSearchParams(location.search).get("local-demo") === "1";
@@ -211,19 +212,24 @@ function peerCard(id, name, meta, self) {
   const card = document.createElement("div");
   card.className = "peer-card" + (self ? " self" : "");
   card.innerHTML = `
-    <div class="peer-name"><span class="dot ${self ? "ok" : "warn"}"></span><span class="pname"></span></div>
+    <div class="peer-card-head">
+      <div class="peer-name"><span class="dot ${self ? "ok" : "warn"}"></span><span class="pname"></span></div>
+      <span class="device-state ${self ? "connected" : "joining"}">${self ? "This device" : "Connecting"}</span>
+    </div>
     <div class="peer-gpu"></div>
+    <div class="peer-capabilities"><span class="peer-gpu-badge"></span><span class="peer-memory"><span class="memory-label">Memory</span> <b class="buf">—</b></span></div>
     <div class="peer-stats">
       <span>rtt <b class="rtt">—</b></span>
       <span>bw <b class="bw">—</b></span>
-      <span>buf <b class="buf">—</b></span>
     </div>
     ${self ? "" : '<button class="bw-btn">test bandwidth</button>'}`;
   card.querySelector(".pname").textContent = name + (self ? " (you)" : "");
   card.querySelector(".peer-gpu").textContent = meta.webgpu
     ? `${meta.ua} · ${meta.gpu}` : `${meta.ua} · ⚠ no WebGPU`;
+  card.querySelector(".peer-gpu-badge").textContent = meta.webgpu ? "WebGPU ready" : "WebGPU unavailable";
+  card.querySelector(".peer-gpu-badge").classList.toggle("unavailable", !meta.webgpu);
   const budget = meta.budgetGB || meta.maxBufGB;
-  card.querySelector(".buf").textContent = meta.contribGB ? "gives " + meta.contribGB + " GB" : (budget ? budget + " GB" : "—");
+  card.querySelector(".buf").textContent = meta.contribGB ? `${meta.contribGB} GB pledged` : (budget ? `${budget} GB available` : "Not reported");
   $("peers").appendChild(card);
   if (!self) card.querySelector(".bw-btn").addEventListener("click", () => bwTest(id));
   return card;
@@ -310,7 +316,7 @@ function updateTopbarPeers() {
             const selfCard = document.querySelector(".peer-card.self");
             if (selfCard) {
               const buf = selfCard.querySelector(".buf");
-              if (buf) buf.textContent = "gives " + v + " GB";
+              if (buf) buf.textContent = v + " GB pledged";
               const pInput = selfCard.querySelector(".pledge input");
               if (pInput) pInput.value = v;
             }
@@ -418,6 +424,9 @@ $("ai-model").addEventListener("change", () => {
       : `Groq Cloud · ${getGroqModelId(model)} · prompts sent to Groq`);
     updateGroqModelBadge();
     updateFallbackModeUI(true);
+  } else if (!ai.engine) {
+    const need = NEED_GB[model] || 1;
+    aiStatus(`About ${need} GB of GPU memory needed · choose Load model when ready`);
   }
   updateCluster();
 });
@@ -433,6 +442,8 @@ function updateGroqModelBadge() {
 function updateCluster() {
   const all = [myMeta, ...[...members.values()].map(m => m.meta)];
   const gpus = all.filter(m => m && m.webgpu).length;
+  const countEl = $("devices-count");
+  if (countEl) countEl.textContent = `${all.length} online`;
   const pledged = calculateClusterPledge(myMeta, [...members.values()].map(m => m.meta));
   updateNeed(pledged);
   const mem = all.filter(m => m && m.webgpu).reduce((s, m) => s + (m?.budgetGB || m?.maxBufGB || 0), 0);
@@ -493,7 +504,7 @@ function enterRoom() {
   peerCard("self", myName, myMeta, true);
   perfSidebar.init();
   updateCluster();
-  log("webslice", `room ${roomCode} — share this code with your other devices`);
+  log("LLM ShardX", `room ${roomCode} — share this code with your other devices`);
   $("ai-panel").style.display = "flex";
   aiStatus("");
   $("ai-empty").textContent = "pick a model and press start, from any device";
@@ -527,7 +538,7 @@ function enterRoom() {
     selfCard.appendChild(row);
     row.querySelector("input").addEventListener("change", (e) => {
       const v = parseFloat(e.target.value);
-      if (v >= (myMeta.phone ? 0.5 : 1)) { myMeta.contribGB = v; selfCard.querySelector(".buf").textContent = "gives " + v + " GB"; updateCluster(); broadcastAll({ t: "pledge", gb: v }); }
+      if (v >= (myMeta.phone ? 0.5 : 1)) { myMeta.contribGB = v; selfCard.querySelector(".buf").textContent = v + " GB pledged"; updateCluster(); broadcastAll({ t: "pledge", gb: v }); }
     });
   }
 }
@@ -568,15 +579,15 @@ function wire(conn, name, meta, initiator = false) {
           ai.clusterDegraded = true;
           ai.abortGen = true;
           aiStatus(`Cluster degraded \u2014 worker ${e?.name || conn.peer} disconnected. Reload model to recover.`);
-          log("webslice", `Cluster degraded \u2014 missing required worker ${e?.name || conn.peer}`);
+          log("LLM ShardX", `Cluster degraded \u2014 missing required worker ${e?.name || conn.peer}`);
         }
         aiMaybeReady();
       }
     }
     if (isHost) {
       dropCard(conn.peer); members.delete(conn.peer); roster.delete(conn.peer); broadcastRoster();
-      log("webslice", `${e?.name || conn.peer} left`);
-    } else if (conn.peer === ai.hostId || (e && e.name === "host")) log("webslice", "lost the link to the host");
+      log("LLM ShardX", `${e?.name || conn.peer} left`);
+    } else if (conn.peer === ai.hostId || (e && e.name === "host")) log("LLM ShardX", "lost the link to the host");
     updateCluster();
   });
   conn.on("error", () => {});
@@ -589,7 +600,7 @@ function ensureCard(id, name, meta) {
     card = peerCard(id, name || id, meta || {}, false);
     cards.set(id, card);
     updateCluster();
-    log("webslice", `${name || id} joined`);
+    log("LLM ShardX", `${name || id} joined`);
     mascot(`${name || id} joined! ${members.size + 1} devices in the room.`);
   }
   const e = conns.get(id);
@@ -668,7 +679,7 @@ function onData(from, d) {
         seen.add(m.id);
         members.set(m.id, { name: m.name, meta: m.meta });
         const c = ensureCard(m.id, m.name, m.meta);
-        if (m.meta?.contribGB) c.querySelector(".buf").textContent = "gives " + m.meta.contribGB + " GB";
+        if (m.meta?.contribGB) c.querySelector(".buf").textContent = m.meta.contribGB + " GB pledged";
         const ce = conns.get(m.id); if (ce) ce.meta = m.meta;
       }
       for (const id of [...members.keys()]) if (!seen.has(id)) { members.delete(id); dropCard(id); }
@@ -678,11 +689,16 @@ function onData(from, d) {
     case "ping": sendTo(from, { t: "pong", ts: d.ts }); break;
     case "pong": {
       e.rtt = Math.round(performance.now() - d.ts);
-      if (e.card) e.card.querySelector(".rtt").textContent = e.rtt + " ms";
+      if (e.card) {
+        e.card.querySelector(".rtt").textContent = e.rtt + " ms";
+        const state = e.card.querySelector(".device-state");
+        if (state) { state.textContent = "Connected"; state.className = "device-state connected"; }
+        e.card.querySelector(".dot")?.classList.replace("warn", "ok");
+      }
       break;
     }
     case "pledge":
-      if (e) { e.meta = { ...e.meta, contribGB: d.gb }; if (e.card) e.card.querySelector(".buf").textContent = "gives " + d.gb + " GB"; }
+      if (e) { e.meta = { ...e.meta, contribGB: d.gb }; if (e.card) e.card.querySelector(".buf").textContent = d.gb + " GB pledged"; }
       if (members.has(from)) members.get(from).meta = { ...members.get(from).meta, contribGB: d.gb };
       if (isHost && roster.has(from)) { roster.get(from).meta = { ...roster.get(from).meta, contribGB: d.gb }; broadcastRoster(); }
       updateCluster();
@@ -700,7 +716,7 @@ function onData(from, d) {
     }
     case "bw-result":
       if (e.card) e.card.querySelector(".bw").textContent = d.mbps + " Mbps";
-      log("webslice", `bandwidth to ${e.name}: ${d.mbps} Mbps`);
+      log("LLM ShardX", `bandwidth to ${e.name}: ${d.mbps} Mbps`);
       break;
   }
 }
@@ -725,7 +741,7 @@ function meshConnect(targetId) {
 async function bwTest(id) {
   const e = conns.get(id);
   if (!e) return;
-  log("webslice", `testing bandwidth to ${e.name}…`);
+  log("LLM ShardX", `testing bandwidth to ${e.name}…`);
   sendTo(id, { t: "bw-start" });
   const chunk = new Uint8Array(64 * 1024);
   const total = 4 * 1024 * 1024;
@@ -747,6 +763,9 @@ $("gb-minus").addEventListener("click", () => stepGB(-1));
 $("gb-plus").addEventListener("click", () => stepGB(1));
 // --- join / create ---
 async function start(create) {
+  // Both the inline loading bridge and the module's click listener can fire for one click.
+  // The first call disables both buttons synchronously; ignore any duplicate invocation.
+  if ($("create-btn").disabled || $("join-btn").disabled) return;
   window.__roomStart = start;
   try {
     myName = $("name-input").value.trim() || (create ? "host" : "peer") + "-" + rand(2);
@@ -1057,7 +1076,7 @@ async function rangeFetch(url, lo, hi, noCache = false) {
       lastErr = err;
       currentUrl = urls[Math.min(attempt + 1, urls.length - 1)] || url;
       if (attempt < maxRetries) {
-        console.warn(`[WebSlice] rangeFetch attempt ${attempt + 1} failed for ${currentUrl} [${lo}-${hi}]: ${err.message}. Retrying...`);
+        console.warn(`[LLM ShardX] rangeFetch attempt ${attempt + 1} failed for ${currentUrl} [${lo}-${hi}]: ${err.message}. Retrying...`);
       }
     }
   }
@@ -1128,7 +1147,7 @@ const rangeBytesOf = (url) => async (info, onProgress = () => {}) => {
       try { await reader?.cancel(err); } catch {}
       if (attemptReported > 0) onProgress(-attemptReported);
       if (attempt < maxRetries) {
-        console.warn(`[WebSlice] Range download attempt ${attempt + 1} failed for ${info.name}: ${err.message}. Retrying...`);
+        console.warn(`[LLM ShardX] Range download attempt ${attempt + 1} failed for ${info.name}: ${err.message}. Retrying...`);
       }
     }
   }
@@ -1139,7 +1158,17 @@ const rangeBytesOf = (url) => async (info, onProgress = () => {}) => {
 
 export { formatLayerRange };
 
-function aiStatus(s) { $("ai-status").textContent = s; crumb(s); }
+function aiStatus(s) {
+  const status = $("ai-status");
+  if (status) {
+    status.textContent = s;
+    const value = String(s).toLowerCase();
+    status.classList.toggle("status-error", /failed|error|degraded|unavailable/.test(value));
+    status.classList.toggle("status-working", /loading|downloading|reading|syncing|waiting|streaming|prefill|requested/.test(value));
+    status.classList.toggle("status-ready", /ready|online|cluster/.test(value) && !/degraded/.test(value));
+  }
+  crumb(s);
+}
 // breadcrumb: if iOS kills the tab, the reloaded page can say where it died
 function crumb(s) { try { localStorage.setItem("webslice-crumb", JSON.stringify({ s, t: Date.now(), mem: performance.memory?.usedJSHeapSize })); } catch {} }
 // (crumb is kept in localStorage for debugging, not shown on the join screen)
@@ -1265,7 +1294,7 @@ function renderWelcomePrompts() {
         <span class="welcome-dot"></span>
         <span>CLUSTER READY · ${n} DEVICE${n > 1 ? "S" : ""} ONLINE</span>
       </div>
-      <h2 class="welcome-title">Welcome to <span>WebSlice</span></h2>
+      <h2 class="welcome-title">Welcome to <span>LLM ShardX</span></h2>
       <p class="welcome-desc">Distributed WebGPU cluster running <strong>${esc(modelLabel)}</strong>. Every token is computed across all GPUs in the room.</p>
       <div class="prompts-grid">
         <button class="prompt-card" type="button" onclick="window.usePromptSuggestion('Write a playable single-file Flappy Bird game in HTML and Canvas with smooth physics.')">
@@ -1460,14 +1489,14 @@ function chatBotStart() {
   const time = formatTime();
   m.innerHTML = `
     <div class="msg-header">
-      <div class="bot-avatar" title="WebSlice Mesh">
+      <div class="bot-avatar" title="LLM ShardX Mesh">
         <svg class="bot-mesh-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
           <polyline points="2 17 12 22 22 17"></polyline>
           <polyline points="2 12 12 17 22 12"></polyline>
         </svg>
       </div>
-      <span class="who">WebSlice</span>
+      <span class="who">LLM ShardX</span>
       <span class="model-badge">${esc(modelLabel)}</span>
       <span class="msg-time">${time}</span>
     </div>
@@ -1585,20 +1614,20 @@ async function aiLoadShard(modelKey, range, hasEmbed, hasHead) {
   });
   ai.device.addEventListener?.("uncapturederror", (ev) => {
     const gmsg = ev.error?.message || "";
-    if (!ai.firstGpuError) { ai.firstGpuError = gmsg; aiStatus("GPU error: " + gmsg.slice(0, 300)); log("webslice", "\u26a0 FIRST GPU error on " + myName + ": " + gmsg.slice(0, 600)); }
+    if (!ai.firstGpuError) { ai.firstGpuError = gmsg; aiStatus("GPU error: " + gmsg.slice(0, 300)); log("LLM ShardX", "\u26a0 FIRST GPU error on " + myName + ": " + gmsg.slice(0, 600)); }
     crumb("GPU validation error: " + gmsg.slice(0, 400));
     if (ai.hostId && ai.role !== "host") sendTo(ai.hostId, { t: "ai-error", message: "GPU error: " + (ev.error?.message || "").slice(0, 300) });
-    log("webslice", "\u26a0 GPU error on " + myName + ": " + (ev.error?.message || "").slice(0, 140));
+    log("LLM ShardX", "\u26a0 GPU error on " + myName + ": " + (ev.error?.message || "").slice(0, 140));
   });
-  if (location.hash === "#debug") log("webslice", `${myName}: maxBuf ${(adapter.limits.maxBufferSize / 2 ** 30).toFixed(1)} GB \u00b7 maxBind ${(adapter.limits.maxStorageBufferBindingSize / 2 ** 20).toFixed(0)} MB`);
+  if (location.hash === "#debug") log("LLM ShardX", `${myName}: maxBuf ${(adapter.limits.maxBufferSize / 2 ** 30).toFixed(1)} GB \u00b7 maxBind ${(adapter.limits.maxStorageBufferBindingSize / 2 ** 20).toFixed(0)} MB`);
   aiLoadStage("checking GPU");
   const tAdapter = await navigator.gpu.requestAdapter();   // an adapter gives out one device only
   const tdev = await tAdapter.requestDevice();               // throwaway: its test buffers die with it
   const st = await gpuSelfTest(tdev);
-  if (!st.ok) log("webslice", `${myName} GPU self-test: ${st.detail}`);
-  if (!st.ok) throw new Error("GPU self-test FAILED on this device: " + st.detail + " \u2014 please screenshot this");
+  if (!st.ok) log("LLM ShardX", `${myName} GPU self-test: ${st.detail}`);
+  if (!st.ok) throw new Error("GPU compatibility check failed. Reload and retry; if it continues, share these diagnostics: " + st.detail);
   const mt = await kernelMicroTests(tdev);
-  if (!mt.ok) log("webslice", `${myName} kernels: ${mt.detail}`);
+  if (!mt.ok) log("LLM ShardX", `${myName} kernels: ${mt.detail}`);
   if (!mt.ok) throw new Error("GPU kernel FAILED on this device \u2192 " + mt.firstFail + " \u2014 please send me this line");
   try { tdev.destroy(); } catch {}
   ai.device.lost.then((l) => crumb("GPU device lost: " + l.reason + " " + l.message));
@@ -1731,7 +1760,7 @@ async function aiLoadShard(modelKey, range, hasEmbed, hasHead) {
       tensors = await fetchModelShard(M.st, names, (p, done, total) => onProg(done, total));
     } catch (err) {
       if (M.stFallback) {
-        console.warn(`[WebSlice] fetchModelShard failed for ${M.st}, falling back to ${M.stFallback}:`, err);
+        console.warn(`[LLM ShardX] fetchModelShard failed for ${M.st}, falling back to ${M.stFallback}:`, err);
         tensors = await fetchModelShard(M.stFallback, names, (p, done, total) => onProg(done, total));
       } else {
         throw err;
@@ -1899,7 +1928,7 @@ async function aiStart(modelArg) {
     const peerMetas = ai.chain.map((id) => conns.get(id)?.meta);
     const { assigned, ranges, needGB, haveGB } = allocateLayers(L, layerBytes, embedBytes, myMeta, peerMetas);
     if (needGB > haveGB * 1.15)
-      log("webslice", `\u26a0 this model needs ~${needGB.toFixed(1)} GB but the room pledged ~${haveGB.toFixed(1)} GB \u2014 it may not fit`);
+      log("LLM ShardX", `\u26a0 this model needs ~${needGB.toFixed(1)} GB but the room pledged ~${haveGB.toFixed(1)} GB \u2014 it may not fit`);
 
     ai.deferred = [];
     ai.chain.forEach((id, i) => {
@@ -1919,7 +1948,7 @@ async function aiStart(modelArg) {
     updateCluster();
     const splitDesc = [`you ${assigned[0]}+embed`, ...ai.chain.map((id, i) =>
       `${conns.get(id)?.name || id} ${assigned[i + 1]}`)].join(" \u00b7 ");
-    log("webslice", `${M.label} \u2014 layer split by pledge: ${splitDesc}`);
+    log("LLM ShardX", `${M.label} \u2014 layer split by pledge: ${splitDesc}`);
     await aiLoadShard(modelKey, ranges[0], true, true);
     aiStatus(n === 1
       ? `solo: all ${L} layers local \u2014 ready`
@@ -1954,7 +1983,7 @@ function aiRejoin(newId, name) {
   const dIdx = ai.deferred?.findIndex((d) => d.id === oldId) ?? -1;
   if (dIdx >= 0) { ai.deferred[dIdx] = { id: newId, msg: fresh }; sendTo(newId, { t: "ai-wait" }); }
   else sendTo(newId, fresh);
-  log("webslice", `${name} came back — reloading its layers`);
+  log("LLM ShardX", `${name} came back — reloading its layers`);
   aiStatus(`${name} reconnected, reloading its layers…`);
   $("ai-row").style.display = "flex";
 }
@@ -2062,6 +2091,7 @@ function sendChat(msg, askerId) {
   if (msg.t !== "ai-token") for (const id of hidden) sendTo(id, { t: msg.t, name: msg.name, stats: msg.stats, capped: msg.capped, hidden: true });
 }
 async function aiGenerate(textArg, who, askerId = peer.id, continuation = {}) {
+  const buildModeRequest = Boolean(continuation.buildMode);
   const currentModelKey = $("ai-model")?.value || "qwen3.8-27b";
   if (!isGroqMode && ai.GModel && ai.GModel !== currentModelKey && ai.role === "host") {
     console.log("Model changed mid-conversation. Reloading...", currentModelKey);
@@ -2073,7 +2103,7 @@ async function aiGenerate(textArg, who, askerId = peer.id, continuation = {}) {
   }
   const text = (textArg ?? $("ai-prompt").value).trim();
   const asker = who || myName;
-  if (!text || ai.busy === "gen") return;
+  if (!text || ai.busy === "gen" || ai.busy === "build") return;
   if (!isGroqMode && !ai.engine) return;
 
   if (isGroqMode) {
@@ -2084,18 +2114,24 @@ async function aiGenerate(textArg, who, askerId = peer.id, continuation = {}) {
     const groqModel = getGroqModelId(modelKey);
     ai.lastPrompt = continuation.originalPrompt || text;
     ai.abortGen = false;
-    ai.busy = "gen";
-    $("ai-prompt").value = "";
-    $("ai-prompt").style.height = "auto";
-    setSendButtonState("stop");
+    ai.busy = buildModeRequest ? "build" : "gen";
+    if (!buildModeRequest) {
+      $("ai-prompt").value = "";
+      $("ai-prompt").style.height = "auto";
+    }
+    if (!buildModeRequest) setSendButtonState("stop");
     if ($("ai-model")) $("ai-model").disabled = true;
 
-    if (!continuation.isContinuation) {
+    if (!buildModeRequest && !continuation.isContinuation) {
       chatUser(asker, text);
       chatBotStart();
       const deviceCount = 1;
       sendChat({ t: "ai-genstart", name: asker, text, model: mLabel, deviceCount, backend: "cloud" }, askerId);
       perfSidebar?.onGenStart?.({ model: mLabel, deviceCount, backend: "cloud" });
+    }
+    if (buildModeRequest) {
+      buildMode.receiveHostStart({ model: mLabel, repair: Boolean(continuation.repair) });
+      broadcastAll({ t: "ai-build-start", model: mLabel, repair: Boolean(continuation.repair) });
     }
     mascot(LOCAL_DEMO_PRESENTATION ? "Generating response…" : `Routing prompt to ${mLabel}…`);
     aiStatus(LOCAL_DEMO_PRESENTATION ? "generating response…" : `streaming from ${mLabel}…`);
@@ -2105,8 +2141,8 @@ async function aiGenerate(textArg, who, askerId = peer.id, continuation = {}) {
     ai.groqAbortController = controller;
 
     ai.history = ai.history || [];
-    ai.history.push({ role: "user", content: text });
-    const messages = ai.history.slice(-12);
+    if (!buildModeRequest) ai.history.push({ role: "user", content: text });
+    const messages = buildModeRequest ? [{ role: "user", content: text }] : ai.history.slice(-12);
 
     const t0 = performance.now();
     let reply = continuation.prefixReply || "";
@@ -2130,9 +2166,14 @@ async function aiGenerate(textArg, who, askerId = peer.id, continuation = {}) {
         }
         tokenCount++;
         reply += token;
-        chatBotUpdate(reply);
-        sendChat({ t: "ai-token", text: token }, askerId);
-        perfSidebar?.onToken?.(token, (continuation.priorCount || 0) + tokenCount);
+        if (buildModeRequest) {
+          buildMode.receiveHostToken(token);
+          broadcastAll({ t: "ai-build-token", text: token });
+        } else {
+          chatBotUpdate(reply);
+          sendChat({ t: "ai-token", text: token }, askerId);
+          perfSidebar?.onToken?.(token, (continuation.priorCount || 0) + tokenCount);
+        }
         const elapsed = (performance.now() - t0) / 1000;
         aiStatus(`streaming… ${tokenCount} tok · ${(tokenCount / (elapsed || 0.001)).toFixed(1)} tok/s · ${mLabel}`);
       }
@@ -2150,6 +2191,8 @@ async function aiGenerate(textArg, who, askerId = peer.id, continuation = {}) {
           autoDepth: (continuation.autoDepth || 0) + 1,
           priorCount: (continuation.priorCount || 0) + tokenCount,
           priorSecs: (continuation.priorSecs || 0) + secs,
+          buildMode: buildModeRequest,
+          repair: Boolean(continuation.repair),
         };
         aiStatus("answer reached token limit; continuing automatically…");
         mascot("Continuing the answer automatically…");
@@ -2157,30 +2200,46 @@ async function aiGenerate(textArg, who, askerId = peer.id, continuation = {}) {
         const totalCount = (continuation.priorCount || 0) + tokenCount;
         const totalSecs = (continuation.priorSecs || 0) + secs;
         const stats = `${totalCount} tok · ${(totalCount / (totalSecs || 0.001)).toFixed(1)} tok/s · ${mLabel}${wasAborted ? " · stopped by user" : wasCapped ? " · stopped: token limit reached" : ""}`;
-        chatBotEnd(reply, stats, wasCapped && !wasAborted);
-        sendChat({ t: "ai-gendone", stats, capped: wasCapped && !wasAborted }, askerId);
-        perfSidebar?.onGenDone?.({ totalTokens: totalCount, totalSecs, stats });
+        if (buildModeRequest) {
+          if (wasAborted) buildMode.receiveHostError("Build stopped by the host.");
+          else buildMode.receiveHostDone(reply, { stats });
+          broadcastAll({ t: "ai-build-done", text: reply, stats, aborted: wasAborted });
+        } else {
+          chatBotEnd(reply, stats, wasCapped && !wasAborted);
+          sendChat({ t: "ai-gendone", stats, capped: wasCapped && !wasAborted }, askerId);
+          perfSidebar?.onGenDone?.({ totalTokens: totalCount, totalSecs, stats });
+        }
         mascot(wasAborted ? "Generation stopped." : wasCapped ? "Token limit reached. Click Continue or ask to proceed." : LOCAL_DEMO_PRESENTATION ? `Answered by ${mLabel}.` : `Answered by Groq Cloud (${mLabel}).`);
         aiStatus(`ready — ${stats}`);
-        if (reply && !wasAborted) {
+        if (!buildModeRequest && reply && !wasAborted) {
           ai.history.push({ role: "assistant", content: reply });
         }
       }
     } catch (err) {
       if (ai.abortGen) {
         const stats = `${tokenCount} tok · stopped by user · ${mLabel}`;
-        chatBotEnd(reply, stats, false);
-        sendChat({ t: "ai-gendone", stats, capped: false }, askerId);
-        perfSidebar?.onGenDone?.({ totalTokens: tokenCount, totalSecs: (performance.now() - t0) / 1000, stats });
+        if (buildModeRequest) {
+          buildMode.receiveHostError("Build stopped by the host.");
+          broadcastAll({ t: "ai-build-error", message: "Build stopped by the host." });
+        } else {
+          chatBotEnd(reply, stats, false);
+          sendChat({ t: "ai-gendone", stats, capped: false }, askerId);
+          perfSidebar?.onGenDone?.({ totalTokens: tokenCount, totalSecs: (performance.now() - t0) / 1000, stats });
+        }
         aiStatus(`stopped — ${stats}`);
       } else {
         console.error("[Groq] Generation error:", err);
         const displayError = LOCAL_DEMO_PRESENTATION ? err.message.replace(/groq/gi, "model service") : err.message;
         aiStatus((LOCAL_DEMO_PRESENTATION ? "Generation error: " : "Cloud error: ") + displayError);
         const errorLabel = LOCAL_DEMO_PRESENTATION ? "Generation error" : "Cloud Error";
-        chatBotEnd((continuation.prefixReply || "") + `\n\n⚠ **${errorLabel}**: ${displayError}`, "");
-        sendChat({ t: "ai-gendone", stats: "failed: " + err.message }, askerId);
-        perfSidebar?.onGenDone?.({ totalTokens: tokenCount, totalSecs: (performance.now() - t0) / 1000, stats: "failed: " + err.message });
+        if (buildModeRequest) {
+          buildMode.receiveHostError(displayError);
+          broadcastAll({ t: "ai-build-error", message: displayError });
+        } else {
+          chatBotEnd((continuation.prefixReply || "") + `\n\n⚠ **${errorLabel}**: ${displayError}`, "");
+          sendChat({ t: "ai-gendone", stats: "failed: " + err.message }, askerId);
+          perfSidebar?.onGenDone?.({ totalTokens: tokenCount, totalSecs: (performance.now() - t0) / 1000, stats: "failed: " + err.message });
+        }
         toast(LOCAL_DEMO_PRESENTATION ? `Generation error: ${displayError}` : `Cloud error: ${displayError}`);
       }
     } finally {
@@ -2188,7 +2247,7 @@ async function aiGenerate(textArg, who, askerId = peer.id, continuation = {}) {
       ai.abortGen = false;
       ai.abortController = null;
       ai.groqAbortController = null;
-      setSendButtonState("send");
+      if (!buildModeRequest) setSendButtonState("send");
       if (autoContinuation) {
         aiGenerate(autoContinuation.prompt, asker, askerId, { ...autoContinuation, isContinuation: true });
       } else {
@@ -2210,10 +2269,12 @@ async function aiGenerate(textArg, who, askerId = peer.id, continuation = {}) {
   broadcastAll({ t: "ai-reset", keepReply: !!continuation.isContinuation });
   ai.lastPrompt = continuation.originalPrompt || text;
   ai.abortGen = false;
-  ai.busy = "gen";
-  $("ai-prompt").value = "";
-  $("ai-prompt").style.height = "auto";
-  setSendButtonState("stop");
+  ai.busy = buildModeRequest ? "build" : "gen";
+  if (!buildModeRequest) {
+    $("ai-prompt").value = "";
+    $("ai-prompt").style.height = "auto";
+  }
+  if (!buildModeRequest) setSendButtonState("stop");
   if ($("ai-model")) $("ai-model").disabled = true;
   const V = ai.tok.vocab;
   const isPhi = MODELS[ai.model]?.arch === "phi3";
@@ -2259,13 +2320,18 @@ async function aiGenerate(textArg, who, askerId = peer.id, continuation = {}) {
   if (Number.isInteger(ai.cfg?.eos_token_id)) eosIds.add(ai.cfg.eos_token_id);
   else if (Array.isArray(ai.cfg?.eos_token_id)) for (const id of ai.cfg.eos_token_id) eosIds.add(id);
 
-  if (!continuation.isContinuation) {
+  if (!buildModeRequest && !continuation.isContinuation) {
     chatUser(asker, text);
     chatBotStart();
     const modelLabel = MODELS[ai.model]?.label?.split("·")[0]?.trim() || ai.model;
     const deviceCount = Math.max(1, perfSidebar?.devices?.filter(d => d.workerRole && d.workerRole !== "Idle").length || 1);
     sendChat({ t: "ai-genstart", name: asker, text, model: modelLabel, deviceCount, backend: "local" }, askerId);
     perfSidebar?.onGenStart?.({ model: modelLabel, deviceCount, backend: "local" });
+  }
+  if (buildModeRequest) {
+    const modelLabel = MODELS[ai.model]?.label?.split("·")[0]?.trim() || ai.model;
+    buildMode.receiveHostStart({ model: modelLabel, repair: Boolean(continuation.repair) });
+    broadcastAll({ t: "ai-build-start", model: modelLabel, repair: Boolean(continuation.repair) });
   }
   mascot("Thinking… every word is taking a lap through the room.");
   aiStatus(`prefill: ${ids.length} tokens…`);
@@ -2353,9 +2419,14 @@ async function aiGenerate(textArg, who, askerId = peer.id, continuation = {}) {
       const piece = streamDecoder.decode([tok]);
       reply += piece;
       count++;
-      chatBotUpdate(reply);
-      sendChat({ t: "ai-token", text: piece }, askerId);
-      perfSidebar?.onToken?.(piece, (continuation.priorCount || 0) + count);
+      if (buildModeRequest) {
+        buildMode.receiveHostToken(piece);
+        broadcastAll({ t: "ai-build-token", text: piece });
+      } else {
+        chatBotUpdate(reply);
+        sendChat({ t: "ai-token", text: piece }, askerId);
+        perfSidebar?.onToken?.(piece, (continuation.priorCount || 0) + count);
+      }
       aiStatus(`generating… ${count} tok · ${(count / ((performance.now() - t0) / 1000)).toFixed(1)} tok/s`);
     };
     const recentTokens = [];
@@ -2457,8 +2528,13 @@ async function aiGenerate(textArg, who, askerId = peer.id, continuation = {}) {
     const finalPiece = streamDecoder.finish();
     if (finalPiece) {
       reply += finalPiece;
-      chatBotUpdate(reply);
-      sendChat({ t: "ai-token", text: finalPiece }, askerId);
+      if (buildModeRequest) {
+        buildMode.receiveHostToken(finalPiece);
+        broadcastAll({ t: "ai-build-token", text: finalPiece });
+      } else {
+        chatBotUpdate(reply);
+        sendChat({ t: "ai-token", text: finalPiece }, askerId);
+      }
     }
     const secs = (performance.now() - t0) / 1000;
     const wasAborted = ai.abortGen;
@@ -2471,6 +2547,8 @@ async function aiGenerate(textArg, who, askerId = peer.id, continuation = {}) {
         autoDepth: (continuation.autoDepth || 0) + 1,
         priorCount: (continuation.priorCount || 0) + count,
         priorSecs: (continuation.priorSecs || 0) + secs,
+        buildMode: buildModeRequest,
+        repair: Boolean(continuation.repair),
       };
       aiStatus("answer reached the room's context limit; continuing automatically…");
       mascot("Continuing the answer automatically…");
@@ -2478,21 +2556,32 @@ async function aiGenerate(textArg, who, askerId = peer.id, continuation = {}) {
       const totalCount = (continuation.priorCount || 0) + count;
       const totalSecs = (continuation.priorSecs || 0) + secs;
       const stats = `${totalCount} tok · ${(totalCount / (totalSecs || 0.001)).toFixed(1)} tok/s · ${ai.chain.length + 1} devices${wasAborted ? " · stopped by user" : capped ? ` · stopped: context limit reached (${MAX_SEQ} tokens)` : ""}`;
-      chatBotEnd(reply, stats, capped && !wasAborted);
-      sendChat({ t: "ai-gendone", stats, capped: capped && !wasAborted }, askerId);
-      perfSidebar?.onGenDone?.({ totalTokens: totalCount, totalSecs, stats });
+      if (buildModeRequest) {
+        if (wasAborted) buildMode.receiveHostError("Build stopped by the host.");
+        else buildMode.receiveHostDone(reply, { stats });
+        broadcastAll({ t: "ai-build-done", text: reply, stats, aborted: wasAborted });
+      } else {
+        chatBotEnd(reply, stats, capped && !wasAborted);
+        sendChat({ t: "ai-gendone", stats, capped: capped && !wasAborted }, askerId);
+        perfSidebar?.onGenDone?.({ totalTokens: totalCount, totalSecs, stats });
+      }
       mascot(wasAborted ? "Generation stopped." : capped ? "Context limit reached. Ask to continue or start a new question." : "Done. Anyone in the room can ask the next one.");
       aiStatus(`ready — prefill ${((t0 - tPre) / 1000).toFixed(1)}s, ${stats}`);
     }
   } catch (err) {
     aiStatus("generation failed: " + err.message);
-    chatBotEnd((continuation.prefixReply || "") + "\n\n⚠ " + err.message, "");
-    sendChat({ t: "ai-gendone", stats: "failed: " + err.message }, askerId);   // unlock everyone's send box
-    perfSidebar?.onGenDone?.({ totalTokens: count, totalSecs: (performance.now() - t0) / 1000, stats: "failed: " + err.message });
+    if (buildModeRequest) {
+      buildMode.receiveHostError(err.message);
+      broadcastAll({ t: "ai-build-error", message: err.message });
+    } else {
+      chatBotEnd((continuation.prefixReply || "") + "\n\n⚠ " + err.message, "");
+      sendChat({ t: "ai-gendone", stats: "failed: " + err.message }, askerId);   // unlock everyone's send box
+      perfSidebar?.onGenDone?.({ totalTokens: count, totalSecs: (performance.now() - t0) / 1000, stats: "failed: " + err.message });
+    }
   } finally {
     ai.busy = false;
     ai.abortGen = false;
-    setSendButtonState("send");
+    if (!buildModeRequest) setSendButtonState("send");
     if (autoContinuation) {
       aiGenerate(autoContinuation.prompt, asker, askerId, { ...autoContinuation, isContinuation: true });
     } else {
@@ -2518,6 +2607,40 @@ async function aiOnData(from, d) {
         $("ldg-fill").style.width = "0%";
         aiStatus(`${d.by || "peer"} started the model\u2026`);
       }
+      break;
+    case "ai-build-request":
+      if (!isHost && ai.role !== "host") break;
+      if (ai.busy) { sendTo(from, { t: "ai-build-error", message: "The room model is busy. Wait for the current response to finish." }); break; }
+      if (!isGroqMode && !ai.engine) { sendTo(from, { t: "ai-build-error", message: "Load the room model before building an app." }); break; }
+      sendTo(from, { t: "ai-build-state", state: { files: buildMode.files, revision: buildMode.revision } });
+      aiGenerate(d.text, d.name || e?.name || "room", from, { buildMode: true, repair: Boolean(d.repair) });
+      break;
+    case "ai-build-state-request":
+      if (isHost || ai.role === "host") sendTo(from, { t: "ai-build-state", state: { files: buildMode.files, revision: buildMode.revision } });
+      break;
+    case "ai-build-stop":
+      if ((isHost || ai.role === "host") && ai.busy === "build") {
+        ai.abortGen = true;
+        ai.abortController?.abort();
+        for (const [, waiter] of ai.waiters || []) waiter?.reject?.(new Error("Build stopped by the host."));
+        ai.waiters?.clear?.();
+      }
+      break;
+    case "ai-build-start":
+      buildMode.receiveHostStart(d);
+      break;
+    case "ai-build-token":
+      buildMode.receiveHostToken(d.text || "");
+      break;
+    case "ai-build-done":
+      if (d.aborted) buildMode.receiveHostError("Build stopped by the host.");
+      else buildMode.receiveHostDone(d.text || "", { stats: d.stats });
+      break;
+    case "ai-build-error":
+      buildMode.receiveHostError(d.message || "Build generation failed.");
+      break;
+    case "ai-build-state":
+      buildMode.receiveState(d.state);
       break;
     case "ai-layers":
       ai.layersByName = d.by;
@@ -2804,10 +2927,10 @@ async function aiOnData(from, d) {
       break;
     case "ai-ask":
       if (ai.role !== "host" && !isHost) break;
-      if (ai.busy === "gen") { sendTo(from, { t: "ai-busy" }); break; }
+      if (ai.busy) { sendTo(from, { t: "ai-busy" }); break; }
       aiGenerate(d.text, d.name, from);
       break;
-    case "ai-busy": toast("the WebSlice is still answering, try again in a moment"); break;
+    case "ai-busy": toast("the LLM ShardX is still answering, try again in a moment"); break;
   }
 }
 
@@ -2897,6 +3020,8 @@ function setupThinkingModeToggle() {
 setupThinkingModeToggle();
 
 function updateFallbackModeUI(enabled) {
+  const advancedMoE = $("ai-model")?.querySelector('option[value="qwen3.6-35b-moe"]');
+  if (advancedMoE) advancedMoE.disabled = Boolean(enabled);
   const btn = $("mode-fallback");
   if (btn) {
     btn.classList.toggle("active", enabled);
@@ -2932,8 +3057,8 @@ function updateFallbackModeUI(enabled) {
     sfcDesc.textContent = LOCAL_DEMO_PRESENTATION
       ? (enabled ? "Local model · ready to start" : "Local model mode")
       : enabled
-      ? `Active · Groq Cloud: ${getGroqModelId(model)} · prompts sent to Groq · no download`
-      : "Off · runs locally with WebGPU; prompts stay on this device and room";
+      ? `Cloud · prompts sent to Groq · ${getGroqModelId(model)}`
+      : "Local WebGPU · prompts stay in this room.";
   }
   const disclosure = $("mode-disclosure");
   if (disclosure) {
@@ -3026,7 +3151,7 @@ function setupFallbackModeToggle() {
 }
 setupFallbackModeToggle();
 
-mascot("Hi! I'm WebSlicey. Create a room, or type a friend's code to join one.");
+mascot("Hi! I'm LLM ShardXy. Create a room, or type a friend's code to join one.");
 
 window.fallbackmode = fallbackmode;
 window.toggleFallbackMode = toggleFallbackMode;
@@ -3037,4 +3162,31 @@ window.perfSidebar = perfSidebar;
 window.GROQ_MODEL_MAP = GROQ_MODEL_MAP;
 window.__roomStart = start;
 window.__roomLoaded = true;
-console.log("WebSlice room.js initialized successfully (fallbackmode ready, perfSidebar active)");
+window.roomBuildIsHost = () => Boolean(isHost || ai.role === "host");
+window.roomBuildBroadcast = (state) => {
+  if (!window.roomBuildIsHost()) return;
+  broadcastAll({ t: "ai-build-state", state });
+};
+window.roomBuildRequestState = () => {
+  if (!window.roomBuildIsHost() && ai.hostId) sendTo(ai.hostId, { t: "ai-build-state-request" });
+};
+window.roomBuildGenerate = async (text, options = {}) => {
+  if (!window.roomBuildIsHost()) {
+    if (!ai.hostId || !conns.has(ai.hostId)) throw new Error("The room host is not connected.");
+    sendTo(ai.hostId, { t: "ai-build-request", text, repair: Boolean(options.repair), name: myName });
+    return;
+  }
+  if (ai.busy) throw new Error("The room model is busy. Wait for the current response to finish.");
+  if (isGroqMode && $("ai-model")?.value === "qwen3.6-35b-moe") throw new Error("Qwen3.6 MoE runs in local WebGPU mode. Switch off Groq Cloud first.");
+  if (!isGroqMode && !ai.engine) throw new Error("Load the room model before building an app.");
+  return aiGenerate(text, myName, peer?.id, { buildMode: true, repair: Boolean(options.repair) });
+};
+window.roomBuildStop = () => {
+  if (!window.roomBuildIsHost() || ai.busy !== "build") return;
+  ai.abortGen = true;
+  ai.abortController?.abort();
+  for (const [, waiter] of ai.waiters || []) waiter?.reject?.(new Error("Build stopped by the host."));
+  ai.waiters?.clear?.();
+};
+buildMode.init();
+console.log("LLM ShardX room.js initialized successfully (fallbackmode ready, perfSidebar active)");

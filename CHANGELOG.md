@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to WebSlice. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+All notable changes to LLM ShardX. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 

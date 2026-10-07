@@ -1,4 +1,4 @@
-// Start the local WebSlice server and, when configured, its Cloudflare Tunnel.
+// Start the local LLM ShardX server and, when configured, its Cloudflare Tunnel.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -54,23 +54,23 @@ if (process.env.CLOUDFLARE_TUNNEL_TOKEN) {
   });
   children.push(tunnel);
   tunnel.on("error", (error) => {
-    console.error(`[WebSlice Tunnel] Could not start ${cloudflared}: ${error.message}`);
+    console.error(`[LLM ShardX Tunnel] Could not start ${cloudflared}: ${error.message}`);
     if (error.code === "ENOENT") {
-      console.error('[WebSlice Tunnel] Set CLOUDFLARED_BIN in .env to the full path of cloudflared.exe if it is installed outside the standard folders.');
+      console.error('[LLM ShardX Tunnel] Set CLOUDFLARED_BIN in .env to the full path of cloudflared.exe if it is installed outside the standard folders.');
     }
     stopChildren(1);
   });
   tunnel.on("spawn", () => {
-    console.log("[WebSlice Tunnel] Starting the configured Cloudflare tunnel.");
+    console.log("[LLM ShardX Tunnel] Starting the configured Cloudflare tunnel.");
   });
   tunnel.on("exit", (code) => {
     if (!stopping) {
-      console.error(`[WebSlice Tunnel] Stopped${code === 0 ? "." : ` with exit code ${code ?? "unknown"}.`}`);
+      console.error(`[LLM ShardX Tunnel] Stopped${code === 0 ? "." : ` with exit code ${code ?? "unknown"}.`}`);
       stopChildren(code || 1);
     }
   });
 } else {
-  console.log("[WebSlice Tunnel] Not configured; serving locally only. Add CLOUDFLARE_TUNNEL_TOKEN to .env to start the tunnel with npm run serve.");
+  console.log("[LLM ShardX Tunnel] Not configured; serving locally only. Add CLOUDFLARE_TUNNEL_TOKEN to .env to start the tunnel with npm run serve.");
 }
 
 let stopping = false;
@@ -84,7 +84,7 @@ function stopChildren(exitCode = 0) {
 }
 
 server.on("error", (error) => {
-  console.error(`[WebSlice Server] Could not start: ${error.message}`);
+  console.error(`[LLM ShardX Server] Could not start: ${error.message}`);
   stopChildren(1);
 });
 server.on("exit", (code) => {

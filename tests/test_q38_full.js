@@ -1,4 +1,4 @@
-// FULL Qwen3.8-27B on the WebSlice engine: 64 layers + head, greedy generation.
+// FULL Qwen3.8-27B on the LLM ShardX engine: 64 layers + head, greedy generation.
 import { parseGGUFHeader, qwen35Weights, tokenizerFromGGUF } from "../engine/gguf.js";
 import { makeTokenizer, argmax } from "../engine/engine.js";
 import { Qwen35Engine } from "../engine/qwen35.js";

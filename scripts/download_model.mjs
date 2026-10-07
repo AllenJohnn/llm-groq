@@ -1,4 +1,4 @@
-// WebSlice Model Downloader
+// LLM ShardX Model Downloader
 // Downloads and sets up model weights, config, and tokenizer for offline & local demonstration.
 // Usage:
 //   node scripts/download_model.mjs list
@@ -61,7 +61,7 @@ function checkModelStatus(id) {
 
 function listModels() {
   console.log("\n=======================================================");
-  console.log("       WebSlice Model Catalog & Local Status          ");
+  console.log("       LLM ShardX Model Catalog & Local Status          ");
   console.log("=======================================================\n");
 
   for (const [id, m] of Object.entries(MODELS)) {

@@ -1,4 +1,4 @@
-# WebSlice Project Progress & Execution Plan
+# LLM ShardX Project Progress & Execution Plan
 
 **Last Updated:** 2026-09-24  
 **Target Repository:** https://github.com/AllenJohnn/llm  
@@ -6,7 +6,7 @@
 ---
 
 ## 1. Project Mission & Architecture Overview
-**WebSlice** is a decentralized, browser-native LLM inference engine. Multiple client devices (laptops, phones, desktops) join a shared WebRTC room, divide the transformer layers according to their available WebGPU memory (e.g. Host gets layers 0–13 + embeddings/head, Worker gets layers 14–27), and stream activations in a pipeline to execute inference cooperatively.
+**LLM ShardX** is a decentralized, browser-native LLM inference engine. Multiple client devices (laptops, phones, desktops) join a shared WebRTC room, divide the transformer layers according to their available WebGPU memory (e.g. Host gets layers 0–13 + embeddings/head, Worker gets layers 14–27), and stream activations in a pipeline to execute inference cooperatively.
 
 ---
 
@@ -84,7 +84,7 @@
 - Eliminates any external dependency on `0.peerjs.com`, enabling 100% offline local demonstrations.
 
 ### Milestone 13: Universal Model Downloader & Local Weight Verification
-- Created [`scripts/download_model.mjs`](file:///c:/Users/NEEHA%20NAZER/Documents/LLM/llm/scripts/download_model.mjs) supporting all 10 models in the WebSlice catalog.
+- Created [`scripts/download_model.mjs`](file:///c:/Users/NEEHA%20NAZER/Documents/LLM/llm/scripts/download_model.mjs) supporting all 10 models in the LLM ShardX catalog.
 - Features chunked streaming download with progress bar, download resumption (`Range` requests), high-speed mirror routing (`hf-mirror.com`), and automatic fallback to `huggingface.co`.
 - Downloads model weights, `config.json`, and `tokenizer.json` into primary directories (`models/<dir>/model.gguf`) and root candidate paths (`models/<model-name>.gguf`).
 - Downloaded and verified local offline models: `smollm-135m` (256.6 MB safetensors) and `qwen3-0.6b` (609.8 MB GGUF).
