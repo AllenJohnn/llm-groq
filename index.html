@@ -3,665 +3,130 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<title>WebGPU-accelerated Sharded LLM Inference across Compute-constrained Edge devices (WebSLICE)</title>
-<meta name="description" content="— large language model, sharded across your devices' browser tabs — no install, no server, no single GPU big enough required.">
-<style>
-  :root {
-    --paper: #f5f4ee;
-    --paper-2: #fbfaf5;
-    --ink: #16171c;
-    --faint: #c4c0b1;
-    --muted: #8b877a;
-    --line: #e1ded2;
-    --accent: #2b4eff;
-    --sans: "Space Grotesk", -apple-system, sans-serif;
-    --mono: "JetBrains Mono", ui-monospace, monospace;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; }
-  body {
-    background: var(--paper);
-    color: var(--ink);
-    font-family: var(--sans);
-    font-size: 18px;
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
-  }
-  ::selection { background: var(--accent); color: #fff; }
-
-  #stage { position: fixed; inset: 0; z-index: 0; }
-  #mesh { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: pan-y; pointer-events: none; }
-
-  nav {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 40;
-    display: flex; align-items: center;
-    padding: 22px max(28px, 4vw);
-    transition: all 0.3s;
-  }
-  nav.scrolled {
-    padding: 14px max(28px, 4vw);
-    background: color-mix(in srgb, var(--paper) 80%, transparent);
-    backdrop-filter: blur(14px);
-    border-bottom: 1px solid var(--line);
-  }
-  .wordmark { font-weight: 700; font-size: 26px; letter-spacing: -0.02em; color: inherit; text-decoration: none; }
-  .wordmark em { font-style: normal; color: var(--accent); }
-  .spacer { flex: 1; }
-  .navlink { font-family: var(--mono); font-size: 16.5px; color: var(--muted); text-decoration: none; margin-right: 28px; transition: color 0.2s; }
-  .navlink:hover { color: var(--ink); }
-  .gh { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 16.5px; color: var(--muted); text-decoration: none; margin-right: 24px; transition: color 0.2s; }
-  .gh:hover { color: var(--ink); }
-  .gh svg { display: block; }
-
-  .cta {
-    display: inline-flex; align-items: center; gap: 10px;
-    font-family: var(--mono); font-size: 18.5px; font-weight: 500;
-    padding: 16px 30px; border-radius: 100px;
-    background: var(--ink); color: var(--paper);
-    text-decoration: none; border: none; cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-  }
-  .cta:hover { background: var(--accent); transform: translateY(-2px); box-shadow: 0 10px 34px rgba(43,78,255,0.35); }
-  .cta .arrow { transition: transform 0.3s; }
-  .cta:hover .arrow { transform: translateX(4px); }
-  nav .cta { padding: 11px 22px; font-size: 16px; }
-
-  /* hero */
-  #hero { position: relative; z-index: 1; height: 100svh; pointer-events: none; }
-  .copy {
-    position: absolute;
-    left: max(28px, 5vw);
-    top: 50%;
-    transform: translateY(-54%);
-    max-width: 660px;
-  }
-  .copy a { pointer-events: auto; }
-  .kicker {
-    font-family: var(--mono); font-size: 15.5px; letter-spacing: 0.22em;
-    color: var(--muted); margin-bottom: 26px;
-  }
-  h1 {
-    font-size: clamp(54px, 7vw, 98px);
-    line-height: 0.98; font-weight: 700; letter-spacing: -0.04em;
-    margin-bottom: 26px;
-  }
-  h1 .dim { color: var(--faint); }
-  h1 .acc { color: var(--accent); }
-  .sub { font-size: 22px; color: var(--muted); max-width: 38ch; margin-bottom: 38px; line-height: 1.6; }
-  .sub b { color: var(--ink); font-weight: 500; }
-
-  #strip {
-    position: absolute; bottom: 0; left: 0; right: 0;
-    display: flex; align-items: center; gap: 8px;
-    padding: 20px max(28px, 4vw);
-    font-family: var(--mono); font-size: 15.5px; color: var(--muted);
-  }
-  #strip .sep { color: var(--faint); margin: 0 8px; }
-
-
-  #demo {
-    height: 460px;
-    display: flex; flex-direction: column;
-    background: var(--paper-2);
-    border: 1px solid var(--line); border-radius: 20px;
-    overflow: hidden;
-    box-shadow: 0 2px 6px rgba(20,21,26,0.04), 0 24px 70px rgba(20,21,26,0.09);
-  }
-  .demo-bar {
-    display: flex; align-items: center; gap: 12px;
-    padding: 14px 20px;
-    border-bottom: 1px solid var(--line);
-    background: color-mix(in srgb, var(--paper-2) 60%, var(--paper));
-    flex: none;
-  }
-  .wdots { display: inline-flex; gap: 6px; }
-  .wdots i { width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
-  .wdots i:first-child { background: var(--faint); }
-  .demo-title { font-family: var(--mono); font-size: 15px; letter-spacing: 0.14em; color: var(--muted); }
-  #demo-live {
-    margin-left: auto;
-    display: inline-flex; align-items: center; gap: 7px;
-    font-family: var(--mono); font-size: 14px; letter-spacing: 0.16em;
-    color: var(--accent); background: none; border: none; padding: 0;
-    cursor: default;
-  }
-  #demo-live::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: blink 1.6s infinite; }
-  #demo-live.again { cursor: pointer; color: var(--muted); }
-  #demo-live.again::before { animation: none; background: var(--faint); }
-  #demo-live.again:hover { color: var(--ink); }
-  #demo-lines {
-    flex: 1; overflow: hidden;
-    padding: 20px 24px;
-    font-family: var(--mono); font-size: 17.5px; line-height: 2;
-  }
-  #demo-lines .dl { color: var(--muted); animation: rise 0.5s cubic-bezier(0.2,0.8,0.2,1) both; }
-  #demo-lines .dl b { color: var(--ink); font-weight: 500; }
-  #demo-lines .dl .hl { color: var(--accent); }
-  .dprog {
-    display: inline-block; vertical-align: middle;
-    width: 90px; height: 4px; margin-left: 10px;
-    background: var(--line); border-radius: 2px; overflow: hidden;
-  }
-  .dprog > span {
-    display: block; height: 100%; width: 0; background: var(--accent); border-radius: 2px;
-    animation: dfill 1.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-  }
-  @keyframes dfill { to { width: 100%; } }
-  #demo-lines .da {
-    margin-top: 14px;
-    background: #eceffe; border: 1px solid #d9defb; border-radius: 14px;
-    padding: 14px 18px;
-    color: var(--ink); font-size: 18px; line-height: 1.7;
-    animation: rise 0.5s both;
-  }
-  #demo-lines .da b { color: var(--accent); font-weight: 500; }
-  @media (max-width: 860px) { #demo { height: 420px; } #demo-lines { font-size: 15px; padding: 14px 16px; } }
-
-
-  /* editorial section */
-  main { position: relative; z-index: 2; background: var(--paper); border-top: 1px solid var(--line); }
-  section { max-width: 1080px; margin: 0 auto; padding: 120px max(28px, 4vw) 80px; }
-  .sec-kicker {
-    font-family: var(--mono); font-size: 15.5px; letter-spacing: 0.22em;
-    color: var(--accent); margin-bottom: 22px;
-  }
-  h2 { font-size: clamp(40px, 4.4vw, 66px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.04; }
-  .lede { font-size: 23px; color: var(--muted); max-width: 56ch; margin-top: 26px; line-height: 1.7; }
-  .lede b { color: var(--ink); font-weight: 500; }
-
-  .how-grid {
-    display: grid; grid-template-columns: 1.15fr 1fr;
-    gap: 64px; align-items: start; margin-top: 64px;
-  }
-  .how-left { position: sticky; top: 100px; }
-  .hs {
-    display: flex; gap: 20px; align-items: flex-start;
-    padding: 26px 0; border-bottom: 1px solid var(--line);
-  }
-  .hs:first-child { padding-top: 6px; }
-  .hs-n {
-    font-family: var(--mono); font-size: 15.5px; color: var(--accent);
-    width: 36px; height: 36px; border: 1px solid var(--accent); border-radius: 50%;
-    display: flex; align-items: center; justify-content: center; flex: none;
-    margin-top: 2px;
-  }
-  .hs h3 { font-size: 25px; font-weight: 500; letter-spacing: -0.01em; margin-bottom: 7px; }
-  .hs p { font-size: 19px; color: var(--muted); line-height: 1.65; }
-  .hs-note { font-family: var(--mono); font-size: 15.5px; color: var(--muted); margin-top: 24px; }
-
-  .endcta { text-align: center; padding: 60px 28px 130px; }
-  .endcta .big { font-size: clamp(32px, 3.2vw, 50px); font-weight: 700; letter-spacing: -0.03em; margin-bottom: 32px; line-height: 1.15; }
-  .endcta .big em { font-style: normal; color: var(--accent); }
-
-  footer {
-    border-top: 1px solid var(--line);
-    padding: 34px max(28px, 4vw);
-    display: flex; align-items: center; gap: 16px;
-    font-family: var(--mono); font-size: 15.5px; color: var(--muted);
-    position: relative; z-index: 2; background: var(--paper);
-  }
-
-  #modal {
-    position: fixed; inset: 0; z-index: 100;
-    display: flex; align-items: center; justify-content: center;
-    background: rgba(20,21,26,0.35);
-    backdrop-filter: blur(10px);
-    padding: 24px;
-  }
-  #modal[hidden] { display: none; }
-  #modal-card {
-    position: relative;
-    background: var(--paper); border: 1px solid var(--line);
-    border-radius: 26px; padding: 44px 46px;
-    max-width: 560px; width: 100%;
-    box-shadow: 0 30px 90px rgba(20,21,26,0.25);
-    animation: pop 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  }
-  @keyframes pop { from { opacity: 0; transform: scale(0.94) translateY(14px); } to { opacity: 1; transform: none; } }
-  #modal-card h3 { font-size: clamp(30px, 2.8vw, 42px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 18px; }
-  #modal-card p { font-size: 19.5px; color: var(--muted); line-height: 1.7; margin-bottom: 14px; }
-  #modal-card p b { color: var(--ink); font-weight: 500; }
-  #modal-x {
-    position: absolute; top: 18px; right: 22px;
-    background: none; border: none; font-size: 30px; color: var(--muted);
-    cursor: pointer; line-height: 1;
-  }
-  #modal-x:hover { color: var(--ink); }
-  .modal-row { display: flex; align-items: center; gap: 22px; margin-top: 26px; flex-wrap: wrap; }
-  #modal-more { font-family: var(--mono); font-size: 16.5px; color: var(--muted); text-decoration: none; }
-  #modal-more:hover { color: var(--ink); }
-
-  .rv { opacity: 0; transform: translateY(26px); transition: all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); }
-  .rv.in { opacity: 1; transform: none; }
-  .ri { animation: rise 1s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-  .ri.d1 { animation-delay: 0.08s; } .ri.d2 { animation-delay: 0.16s; } .ri.d3 { animation-delay: 0.24s; }
-  @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
-
-  @media (max-width: 860px) {
-    .copy { top: auto; bottom: 78px; transform: none; right: 24px; max-width: none; }
-    h1 { font-size: clamp(44px, 10.5vw, 64px); }
-    .sub { font-size: 19px; max-width: none; margin-bottom: 26px; }
-    .cta { padding: 14px 26px; font-size: 17px; }
-    #strip { font-size: 14px; padding: 14px 24px; }
-    .navlink { display: none; }
-    .gh .gh-label { display: none; }
-    .how-grid { grid-template-columns: 1fr; gap: 36px; }
-    .how-left { position: static; }
-  }
-</style>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          animation: {
-            blob: "blob 7s infinite",
-          },
-          keyframes: {
-            blob: {
-              "0%": { transform: "translate(0px, 0px) scale(1)" },
-              "33%": { transform: "translate(30px, -50px) scale(1.1)" },
-              "66%": { transform: "translate(-20px, 20px) scale(0.9)" },
-              "100%": { transform: "translate(0px, 0px) scale(1)" },
-            }
-          }
-        }
-      }
-    }
-  </script>
-  <style>
-    .animation-delay-2000 { animation-delay: 2s; }
-    .animation-delay-4000 { animation-delay: 4s; }
-  </style>
-  <link rel="stylesheet" href="/styles/amoled.css">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2">
+<title>LLM ShardX — A Web-Based Platform for LLM Sharding and Deployment</title>
+<link rel="canonical" href="https://webslice.ai/">
+<meta name="description" content="A Web-Based Platform for LLM Sharding and Deployment.">
+<meta name="theme-color" content="#F6F5F1">
+<link rel="icon" type="image/svg+xml" sizes="any" href="/favicon.svg?v=3">
+<link rel="manifest" href="/site.webmanifest?v=2">
+<link rel="preload" href="/site/fonts/geist-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/site/fonts/geist-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/site/fonts/funnel-display-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/site/css/fonts.css">
+<link rel="stylesheet" href="/site/css/tokens.css">
+<link rel="stylesheet" href="/site/css/site.css">
+<script src="/site/js/boot.js"></script>
 </head>
 <body>
+<svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false">
+  <symbol id="i-mark" viewBox="0 0 24 24"><circle cx="3.4" cy="3.4" r="1.8"/><circle cx="10.2" cy="3.4" r="1.99"/><circle cx="18.5" cy="3.4" r="2.38"/><circle cx="3.4" cy="10.2" r="1.99"/><circle cx="10.2" cy="10.2" r="2.38"/><circle cx="18.5" cy="10.2" r="2.94"/><circle cx="3.4" cy="18.5" r="2.38"/><circle cx="10.2" cy="18.5" r="2.94"/><circle cx="18.5" cy="18.5" r="3.9" fill="#2A45E0"/></symbol>
+  <symbol id="i-laptop" viewBox="0 0 16 16"><path d="M3 3.5h10v7H3zM1.2 12.5h13.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 16 16"><rect x="4.5" y="1.5" width="7" height="13" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M7 12.2h2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></symbol>
+  <symbol id="i-desk" viewBox="0 0 16 16"><path d="M1.8 2.8h12.4v8.4H1.8zM8 11.2v2.6M5.2 13.8h5.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 10 10"><rect x="2" y="4.5" width="6" height="4.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 4.5V3a1.5 1.5 0 0 1 3 0v1.5" fill="none" stroke="currentColor" stroke-width="1.3"/></symbol>
+  <symbol id="i-check" viewBox="0 0 12 12"><path d="m2.5 6.2 2.3 2.3 4.7-5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-file" viewBox="0 0 14 14"><path d="M3.5 1.5h4.5l3 3v8h-7.5z M8 1.5v3h3" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></symbol>
+  <symbol id="i-dir" viewBox="0 0 14 14"><path d="M1.5 3.5h4l1.2 1.3h5.8v6.7h-11z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></symbol>
+  <symbol id="i-down" viewBox="0 0 14 14"><path d="M7 2v7.2M3.8 6.4 7 9.6l3.2-3.2M2.5 12h9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-reload" viewBox="0 0 12 12"><path d="M10 6a4 4 0 1 1-1.2-2.85M10 1.8v2.4H7.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-shuffle" viewBox="0 0 16 16"><path d="M2 4.5h2.5c3 0 4 7 7 7H14M12 9.5l2 2-2 2M2 11.5h2.5c1.2 0 2-1 2.6-2.2M9.3 6.5c.6-1.1 1.3-2 2.2-2H14M12 2.5l2 2-2 2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 10 10"><path d="M2 8 8 2M3.5 2H8v4.5" fill="none" stroke="currentColor" stroke-width="1.4"/></symbol>
+  <symbol id="i-next" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
 
-<div id="stage"><canvas id="mesh"></canvas></div>
+<a class="skip" href="#main">Skip to content</a>
 
-<div id="modal" hidden>
-  <div id="modal-card">
-    <button id="modal-x" aria-label="close">×</button>
-    <div class="sec-kicker">WHAT IS WEBSLICE</div>
-    <h3>WebGPU-accelerated Sharded LLM Inference<br>across Compute-constrained Edge devices.</h3>
-    <p>Big models like <b>Qwen 3.8</b> are too large for any single phone or laptop. That is why AI lives in data centers.</p>
-    <p>WebSLICE splits the model across every device in a room: each one downloads just its slice, and every word of the answer takes a lightning lap through all of them before it appears on every screen at once.</p>
-    <p>No install. No accounts. No servers. Your words never leave the room.</p>
-    <div class="modal-row">
-      <a class="cta" href="/room">start a WebSLICE <span class="arrow">→</span></a>
-      <a id="modal-more" href="#how">read the full story ↓</a>
+<nav class="nav" aria-label="Main">
+  <div class="wrap nav-in">
+    <a class="brand" href="#top" aria-label="LLM ShardX home">
+      <svg class="mark" width="22" height="22" aria-hidden="true"><use href="#i-mark"/></svg>
+      <span class="wm">LLM ShardX</span>
+    </a>
+    <div class="right">
+      <a class="nav-link" href="https://github.com/AllenJohnn/llm-groq/tree/main/docs" target="_blank" rel="noreferrer" aria-label="Documentation on GitHub">Docs</a>
+      <a class="btn btn-blue btn-sm" href="/room">Open a room</a>
     </div>
   </div>
-</div>
-
-<nav id="nav">
-  <a class="wordmark ri" href="/">WebSLICE</a>
-  <div class="spacer"></div>
-  <a class="navlink ri d1" href="#how">what is this?</a>
-  <a class="gh ri d1" href="https://github.com/AllenJohnn/llm" target="_blank" rel="noopener" aria-label="WebSLICE on GitHub"><svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">github</span></a>
-  <a class="cta ri d1" href="/room">start a WebSLICE <span class="arrow">→</span></a>
 </nav>
 
-
-
-<div id="hero-modern" class="relative overflow-hidden bg-[#f5f4ee] text-[#16171c] min-h-[100svh] flex flex-col justify-center items-center pointer-events-auto">
-  <!-- Pastel Animated Background Blobs -->
-  <div class="absolute top-1/4 left-1/4 w-72 h-72 lg:w-96 lg:h-96 bg-blue-300/50 rounded-full mix-blend-multiply filter blur-[100px] opacity-60 animate-blob"></div>
-  <div class="absolute top-1/3 right-1/4 w-72 h-72 lg:w-96 lg:h-96 bg-purple-300/50 rounded-full mix-blend-multiply filter blur-[100px] opacity-60 animate-blob animation-delay-2000"></div>
-  <div class="absolute bottom-1/4 left-1/3 w-72 h-72 lg:w-96 lg:h-96 bg-pink-300/50 rounded-full mix-blend-multiply filter blur-[100px] opacity-60 animate-blob animation-delay-4000"></div>
-
-  <!-- Hero Content -->
-  <div class="relative z-10 max-w-6xl mx-auto px-6 text-center flex flex-col items-center">
-    
-    <div class="gsap-reveal inline-block px-5 py-2 rounded-full border border-[#e1ded2] bg-[#fbfaf5]/60 backdrop-blur-md text-xs sm:text-sm font-bold tracking-[0.2em] text-[#8b877a] uppercase mb-8 shadow-sm">
-      Mesh Inference Engine
-    </div>
-    
-    <h1 class="gsap-reveal text-[#16171c] font-extrabold tracking-tight leading-[1.05] mb-2" style="font-size: clamp(2rem, 5vw, 4rem);">
-      WebGPU-accelerated Sharded LLM Inference
-    </h1>
-    <h2 class="gsap-reveal text-[#2b4eff] font-extrabold tracking-tight leading-[1.05] mb-8" style="font-size: clamp(1.8rem, 4.5vw, 3.5rem);">
-      across Compute-constrained Edge devices
-    </h2>
-    
-    <div class="gsap-reveal mb-8 text-5xl sm:text-7xl font-black text-[#16171c] drop-shadow-sm tracking-tight">
-      (WebSLICE)
-    </div>
-
-    <p class="gsap-reveal text-lg sm:text-xl text-[#8b877a] max-w-3xl mx-auto leading-relaxed mb-12">
-      A large language model, sharded across your devices' browser tabs &mdash; no install, no server, no single GPU big enough required.
-    </p>
-
-    <a class="gsap-reveal inline-flex items-center gap-3 px-8 py-4 rounded-full bg-[#2b4eff] text-white font-bold text-lg sm:text-xl transition-all hover:scale-105 hover:bg-[#1a3ecc] hover:shadow-[0_10px_34px_rgba(43,78,255,0.35)] pointer-events-auto" href="/room">
-      Start a WebSLICE
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-    </a>
-  </div>
-</div>
-<main>
-
-
-  <section id="how">
-    <div class="sec-kicker rv">WHAT IS WEBSLICE</div>
-    <h2 class="rv">One model,<br>shared by the room.</h2>
-    <p class="lede rv">Big LLMs need more memory than any one device has. WebSLICE lets a room of everyday devices share the load, and think as one.</p>
-    <div class="how-grid">
-      <div class="how-left rv">
-        <div id="demo">
-          <div class="demo-bar">
-            <span class="wdots"><i></i><i></i><i></i></span>
-            <span class="demo-title">room RZBB</span>
-            <button id="demo-live">LIVE</button>
-          </div>
-          <div id="demo-lines"></div>
+<main id="main">
+  <header class="hero hero-home" id="top" aria-labelledby="home-title">
+    <canvas class="swarm" id="swarm" aria-hidden="true"></canvas>
+    <div class="wrap hero-in">
+      <div class="hero-copy">
+        <p class="hero-kicker"><span class="live" aria-hidden="true"></span> Browser-based model sharing</p>
+        <h1 id="home-title">Share one model across <span>your devices.</span></h1>
+        <p class="sub">Bring compatible GPUs into one room, choose a model that fits, and ask questions in one shared chat.</p>
+        <div class="ctas hero-ctas">
+          <a class="btn btn-blue" href="/room">Create or join a room <svg width="16" height="16" aria-hidden="true"><use href="#i-next"/></svg></a>
+          <a class="btn btn-line" href="#how-it-works">See how it works</a>
         </div>
+        <p class="hero-note"><svg width="14" height="14" aria-hidden="true"><use href="#i-lock"/></svg> With local inference, prompts stay on the devices in your room.</p>
       </div>
-      <div class="how-steps rv">
-        <div class="hs"><span class="hs-n">01</span><div><h3>Make a room</h3><p>Get a four-letter code. Friends type it in. Devices link up. No accounts.</p></div></div>
-        <div class="hs"><span class="hs-n">02</span><div><h3>Chip in</h3><p>Each device takes a slice of the model. Bigger devices take more.</p></div></div>
-        <div class="hs"><span class="hs-n">03</span><div><h3>Think together</h3><p>Every word laps the room, then appears on every screen at once.</p></div></div>
-        <div class="hs-note">Private by design. Your words never leave the room.</div>
+
+      <figure class="room-illustration" aria-labelledby="room-illustration-caption">
+        <figcaption id="room-illustration-caption"><span>EXAMPLE ROOM</span><span>Model work shared by device</span></figcaption>
+        <svg class="room-links" viewBox="0 0 520 280" fill="none" aria-hidden="true">
+          <path d="M127 120 245 76 393 130M127 120 247 211 393 130" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 7"/>
+          <circle cx="245" cy="76" r="4" fill="currentColor"/><circle cx="247" cy="211" r="4" fill="currentColor"/>
+        </svg>
+        <div class="room-node room-node-host">
+          <span class="room-node-icon"><svg width="34" height="34" aria-hidden="true"><use href="#i-laptop"/></svg></span>
+          <span class="room-node-name">This device</span><span class="room-node-meta">Runs the chat</span>
+        </div>
+        <div class="room-node room-node-phone">
+          <span class="room-node-icon"><svg width="28" height="28" aria-hidden="true"><use href="#i-phone"/></svg></span>
+          <span class="room-node-name">Phone</span><span class="room-node-meta">Adds compute</span>
+        </div>
+        <div class="room-node room-node-laptop">
+          <span class="room-node-icon"><svg width="31" height="31" aria-hidden="true"><use href="#i-desk"/></svg></span>
+          <span class="room-node-name">Laptop</span><span class="room-node-meta">Adds memory</span>
+        </div>
+        <div class="model-layers" aria-label="Model layers assigned across the devices">
+          <span>MODEL LAYERS</span><i></i><i></i><i></i><i></i><i></i><small>Shared across the room</small>
+        </div>
+      </figure>
+    </div>
+  </header>
+
+  <section class="how-section" id="how-it-works" aria-labelledby="how-title">
+    <div class="wrap">
+      <div class="section-heading">
+        <p class="section-kicker">HOW IT WORKS</p>
+        <h2 id="how-title">One room. A few clear steps.</h2>
+        <p>Use the devices you have to run a model that is too large for one browser alone.</p>
       </div>
+      <ol class="how-steps">
+        <li><span class="step-index">01</span><div><h3>Create a room</h3><p>Open a room on the device you want to use for chat.</p></div></li>
+        <li><span class="step-index">02</span><div><h3>Connect your devices</h3><p>Join with the room code so compatible devices can share model layers.</p></div></li>
+        <li><span class="step-index">03</span><div><h3>Choose a model and ask</h3><p>Check memory readiness, start the model, then follow the answer and its speed.</p></div></li>
+      </ol>
     </div>
   </section>
 
-  <div class="endcta rv">
-    <div class="big">Your devices are already a <em>supercomputer</em>.<br>Introduce them.</div>
-    <a class="cta" href="/room">start a WebSLICE <span class="arrow">→</span></a>
-  </div>
+  <section class="privacy-section" aria-labelledby="privacy-title">
+    <div class="wrap privacy-in">
+      <div>
+        <p class="section-kicker">LOCAL FIRST</p>
+        <h2 id="privacy-title">Know where your prompt goes.</h2>
+      </div>
+      <div class="privacy-copy">
+        <p>When you run a model locally, inference happens across the devices in your room. If you choose cloud mode, the selected provider handles the prompt.</p>
+        <a class="btn btn-line" href="/room">Open a room <svg width="16" height="16" aria-hidden="true"><use href="#i-next"/></svg></a>
+      </div>
+    </div>
+  </section>
 </main>
 
-<footer>
-  <span>WebSLICE · peer-to-peer inference in the browser</span>
-  <div class="spacer"></div>
-  <a class="gh" href="https://github.com/AllenJohnn/llm" target="_blank" rel="noopener" aria-label="WebSLICE on GitHub"><svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">source on GitHub · MIT</span></a>
+<footer class="footer">
+  <div class="wrap foot-in">
+    <span class="brand small"><svg class="mark" width="16" height="16" aria-hidden="true"><use href="#i-mark"/></svg><span class="wm">LLM ShardX</span></span>
+    <span class="foot-note">LLM ShardX · peer-to-peer inference in the browser · MIT</span>
+  </div>
 </footer>
 
-<script>
-// ---------- nav + reveal ----------
-const nav = document.getElementById("nav");
-addEventListener("scroll", () => nav.classList.toggle("scrolled", scrollY > 8), { passive: true });
-const modal = document.getElementById("modal");
-document.querySelector(".navlink").addEventListener("click", (e) => {
-  e.preventDefault();
-  modal.hidden = false;
-});
-const closeModal = () => { modal.hidden = true; };
-document.getElementById("modal-x").addEventListener("click", closeModal);
-document.getElementById("modal-more").addEventListener("click", closeModal);
-modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
-addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
-
-const io = new IntersectionObserver((es) => es.forEach(e => {
-  if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
-}), { threshold: 0.12 });
-document.querySelectorAll(".rv").forEach(el => io.observe(el));
-
-// ---------- ambient node network ----------
-const cv = document.getElementById("mesh");
-const ctx = cv.getContext("2d");
-const INK = "#17191c", ACCENT = "#d8dadd", MUTED = "#a0a3a8";
-const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-const NAMES = ["mac", "phone", "spark", "friend", "pc", "tablet", "tv", "watch", "laptop", "pi"];
-let W = 0, H = 0, DPR = 1;
-let pts = [], pulses = [], rings = [];
-const EXTRA = ["you", "desk", "kiosk", "car", "console", "fridge", "camera", "router", "drone", "toaster"];
-let mouse = { x: -1e4, y: -1e4 };
-let lastW = 0, resizeT = null;
-let avoid = { x: 0, y: 0, w: 0, h: 0 };
-const LINK = () => (W < 860 ? 120 : 160);
-const inCopy = (x, y) => x > avoid.x && x < avoid.x + avoid.w && y > avoid.y && y < avoid.y + avoid.h;
-
-function resize() {
-  lastW = innerWidth;
-  DPR = Math.min(devicePixelRatio || 1, innerWidth < 860 ? 1.5 : 2);
-  W = innerWidth; H = innerHeight;
-  cv.width = W * DPR; cv.height = H * DPR;
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  const mobile = W < 860;
-  const cr = document.querySelector(".copy h1").getBoundingClientRect();
-  const pad = mobile ? 10 : 20;
-  avoid = { x: cr.left - pad, y: cr.top - pad, w: cr.width + 2 * pad, h: cr.height + 2 * pad };
-  const n = Math.round(W * H / (mobile ? 16000 : 17000));
-  const nLit = Math.min(NAMES.length, mobile ? 6 : 9);
-  const names = NAMES.slice().sort(() => Math.random() - 0.5);
-  pts = [];
-  pulses = [];
-  for (let i = 0; i < n; i++) {
-    const lit = i < nLit;                                  // which points glow is shuffled below
-    let x = Math.random() * W, y = Math.random() * H;
-    for (let k = 0; lit && inCopy(x, y) && k < 30; k++) { x = Math.random() * W; y = Math.random() * H; }
-    pts.push({
-      x, y,
-      vx: (Math.random() - 0.5) * 0.12, vy: (Math.random() - 0.5) * 0.12,
-      r: 1.2 + Math.random() * 1.6,
-      lit, label: lit ? names[i] : null,   // blue lights are devices
-      ph: Math.random() * 6.28,
-    });
-  }
-  pts.sort(() => Math.random() - 0.5);
-}
-addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(resize, 120); });
-function init() { resize(); }
-
-function physics(now) {
-  for (const p of pts) {
-    if (p.lit && inCopy(p.x, p.y)) {
-      const cx = avoid.x + avoid.w / 2, cy = avoid.y + avoid.h / 2;
-      p.vx += (p.x - cx) * 0.0006; p.vy += (p.y - cy) * 0.0006;
-      p.vx = Math.max(-0.5, Math.min(0.5, p.vx)); p.vy = Math.max(-0.5, Math.min(0.5, p.vy));
-    }
-    p.x += p.vx; p.y += p.vy;
-    if (p.x < -20) p.x = W + 20; if (p.x > W + 20) p.x = -20;
-    if (p.y < -20) p.y = H + 20; if (p.y > H + 20) p.y = -20;
-  }
-  // send light from one device to another, hopping across the points in between
-  if (Math.random() < 0.035 && pulses.length < (W < 860 ? 4 : 7)) {
-    const lit = pts.filter(p => p.lit);
-    if (lit.length > 1) {
-      const a = lit[Math.floor(Math.random() * lit.length)];
-      let b = lit[Math.floor(Math.random() * lit.length)];
-      if (b === a) b = lit[(lit.indexOf(a) + 1) % lit.length];
-      sendLight(a, b);
-    }
-  }
-  for (let i = rings.length - 1; i >= 0; i--) { rings[i].t += 0.018; if (rings[i].t >= 1) rings.splice(i, 1); }
-  for (let i = pulses.length - 1; i >= 0; i--) {
-    const pu = pulses[i];
-    const a = pu.path[pu.i], b = pu.path[pu.i + 1];
-    const len = Math.max(20, Math.hypot(a.x - b.x, a.y - b.y));
-    pu.t += 2.6 / len;                                    // steady speed in px/frame
-    if (pu.t >= 1) { pu.t = 0; pu.i++; if (pu.i >= pu.path.length - 1) pulses.splice(i, 1); }
-  }
-}
-function sendLight(a, b) {
-  {
-    {
-      const path = [a]; let cur = a; const seen = new Set([a]);
-      for (let hop = 0; hop < 14 && cur !== b; hop++) {
-        let best = null, bd = Math.hypot(cur.x - b.x, cur.y - b.y);
-        for (const q of pts) {
-          if (seen.has(q) || (q !== b && inCopy(q.x, q.y))) continue;
-          const d = Math.hypot(cur.x - q.x, cur.y - q.y);
-          if (d > LINK() * 1.3) continue;
-          const dt = Math.hypot(q.x - b.x, q.y - b.y);
-          if (dt < bd) { bd = dt; best = q; }
-        }
-        if (!best) break;
-        path.push(best); seen.add(best); cur = best;
-      }
-      if (path.length > 1) pulses.push({ path, i: 0, t: 0 });   // no route? no light
-    }
-  }
-}
-// click the page: a new device appears there and the room greets it
-document.addEventListener("pointerdown", (e) => {
-  if (scrollY >= H || e.target.closest("a, button, input, .modal, #demo")) return;
-  const used = new Set(pts.filter(p => p.label).map(p => p.label));
-  const label = [...NAMES, ...EXTRA].find(n => !used.has(n)) || "device " + (used.size + 1);
-  const p = { x: e.clientX, y: e.clientY, vx: (Math.random() - 0.5) * 0.12, vy: (Math.random() - 0.5) * 0.12,
-              r: 2.2, lit: true, label, ph: Math.random() * 6.28, born: performance.now() };
-  pts.push(p);
-  rings.push({ x: p.x, y: p.y, t: 0 });
-  // the two nearest devices send light over to the newcomer
-  const near = pts.filter(q => q.lit && q !== p).sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y)).slice(0, 2);
-  near.forEach((q, i) => setTimeout(() => sendLight(q, p), 250 + i * 500));
-  if (reduceMotion) draw(performance.now());
-});
-
-function draw(now) {
-  ctx.clearRect(0, 0, W, H);
-  // dot grid: parallax + ripple around the cursor
-  const px = (mouse.x - W / 2), py = (mouse.y - H / 2);
-  const GS = W < 860 ? 27 : 19;
-  const gx0 = -((px * 0.016) % GS), gy0 = -((py * 0.016) % GS);
-  ctx.fillStyle = INK;
-  for (let gx = gx0 - GS; gx < W + GS; gx += GS) for (let gy = gy0 - GS; gy < H + GS; gy += GS) {
-    const dx = gx - mouse.x, dy = gy - mouse.y, d = Math.hypot(dx, dy);
-    let x = gx, y = gy, a = 0.14, r = 0.9;
-    if (d < 200 && d > 0.1) { const f = 1 - d / 200; x += dx / d * f * f * 20; y += dy / d * f * f * 20; a = 0.14 + f * 0.22; r = 0.9 + f * 0.6; }
-    ctx.globalAlpha = a; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
-  }
-  ctx.globalAlpha = 1;
-  const L = LINK();
-  // links
-  ctx.lineWidth = 1;
-  for (let i = 0; i < pts.length; i++) {
-    const a = pts[i];
-    for (let j = i + 1; j < pts.length; j++) {
-      const b = pts[j];
-      const d = Math.hypot(a.x - b.x, a.y - b.y);
-      if (d > L) continue;
-      const k = 1 - d / L;
-      ctx.strokeStyle = (a.lit && b.lit) ? ACCENT : INK;
-      ctx.globalAlpha = k * ((a.lit && b.lit) ? 0.22 : 0.09);
-      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-    }
-    // link to the cursor when close
-    const dm = Math.hypot(a.x - mouse.x, a.y - mouse.y);
-    if (dm < L * 1.1) {
-      ctx.strokeStyle = ACCENT; ctx.globalAlpha = (1 - dm / (L * 1.1)) * 0.35;
-      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(mouse.x, mouse.y); ctx.stroke();
-    }
-  }
-  ctx.globalAlpha = 1;
-  // pulses
-  for (const pu of pulses) {
-    const a = pu.path[pu.i], b = pu.path[pu.i + 1];
-    const x = a.x + (b.x - a.x) * pu.t, y = a.y + (b.y - a.y) * pu.t;
-    // the hop being travelled lights up behind the pulse
-    ctx.strokeStyle = ACCENT; ctx.lineWidth = 1.2; ctx.globalAlpha = 0.45;
-    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(x, y); ctx.stroke();
-    ctx.globalAlpha = 0.14;
-    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(b.x, b.y); ctx.stroke();
-    ctx.globalAlpha = 1; ctx.lineWidth = 1;
-    const g = ctx.createRadialGradient(x, y, 0, x, y, 14);
-    g.addColorStop(0, "rgba(216,218,221,0.7)"); g.addColorStop(1, "rgba(216,218,221,0)");
-    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, 14, 0, 7); ctx.fill();
-    ctx.fillStyle = ACCENT; ctx.beginPath(); ctx.arc(x, y, 2.6, 0, 7); ctx.fill();
-  }
-  // join ripples
-  for (const r of rings) {
-    ctx.strokeStyle = ACCENT; ctx.globalAlpha = (1 - r.t) * 0.6; ctx.lineWidth = 1.2;
-    ctx.beginPath(); ctx.arc(r.x, r.y, 6 + r.t * 70, 0, 7); ctx.stroke();
-  }
-  ctx.globalAlpha = 1; ctx.lineWidth = 1;
-  // nodes
-  for (const p of pts) {
-    if (p.lit) {
-      const glow = 0.55 + 0.45 * Math.sin(now / 900 + p.ph);
-      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 16);
-      g.addColorStop(0, `rgba(216,218,221,${0.28 * glow})`); g.addColorStop(1, "rgba(216,218,221,0)");
-      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, 16, 0, 7); ctx.fill();
-      ctx.fillStyle = ACCENT; ctx.globalAlpha = 0.6 + 0.4 * glow;
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 0.6, 0, 7); ctx.fill();
-      if (p.label && !inCopy(p.x, p.y)) {
-        ctx.font = "10px JetBrains Mono, monospace"; ctx.textAlign = "left";
-        ctx.fillStyle = MUTED; ctx.globalAlpha = 0.55 + 0.35 * glow;
-        ctx.fillText(p.label, p.x + 9, p.y + 3.5);
-      }
-    } else {
-      ctx.fillStyle = INK; ctx.globalAlpha = 0.28;
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-  }
-}
-
-let last = performance.now(), running = true;
-function loop(now) {
-  last = now;
-  if (running && scrollY < H) { physics(now); draw(now); }
-  if (!reduceMotion) requestAnimationFrame(loop);
-}
-document.addEventListener("visibilitychange", () => { running = !document.hidden; });
-addEventListener("mousemove", (e) => { mouse = { x: e.clientX, y: e.clientY }; });
-addEventListener("mouseleave", () => { mouse = { x: -1e4, y: -1e4 }; });
-
-// ---------- scroll-in room replay ----------
-const demoEl = document.getElementById("demo-lines");
-const demoLive = document.getElementById("demo-live");
-const DEMO = [
-  [0, `<b>mac</b> created room <span class="hl">RZBB</span> · host · pledged 6 GB`],
-  [800, `<b>+ phone</b> joined · pledged 0.9 GB`],
-  [1500, `<b>+ spark</b> joined · pledged 12 GB`],
-  [2200, `<b>+ friend</b> joined · pledged 4 GB`],
-  [3100, `<b>Qwen 3.8 27B</b> · layers dealt: spark <b>34</b> · mac <b>17</b> · friend <b>11</b> · phone <b>2</b>`],
-  [4200, `downloading shards<span class="dprog"><span></span></span>`],
-  [5700, `<span class="hl">cluster online</span> · <b>you:</b> what can a room full of gadgets do?`],
-];
-const DEMO_ANS = "run a model none of us could hold alone. each of us keeps a few layers, and every word you read took a lap through the whole room.";
-let demoState = "idle";
-function playDemo() {
-  if (demoState === "playing") return;
-  demoState = "playing";
-  demoEl.innerHTML = "";
-  demoLive.textContent = "LIVE";
-  demoLive.classList.remove("again");
-  if (reduceMotion) {
-    for (const [, html] of DEMO) { const d = document.createElement("div"); d.className = "dl"; d.innerHTML = html; demoEl.appendChild(d); }
-    const answer = document.createElement("div"); answer.className = "da";
-    answer.innerHTML = `<b>THE ROOM ›</b> ${DEMO_ANS}`; demoEl.appendChild(answer);
-    demoState = "done"; demoLive.textContent = "↺ replay"; demoLive.classList.add("again");
-    return;
-  }
-  for (const [t, html] of DEMO) setTimeout(() => { const d = document.createElement("div"); d.className = "dl"; d.innerHTML = html; demoEl.appendChild(d); }, t);
-  setTimeout(() => {
-    const a = document.createElement("div"); a.className = "da"; demoEl.appendChild(a);
-    let i = 0;
-    const iv = setInterval(() => {
-      i++;
-      a.innerHTML = `<b>THE ROOM ›</b> ` + DEMO_ANS.slice(0, i) + (i < DEMO_ANS.length ? "▌" : "");
-      if (i >= DEMO_ANS.length) { clearInterval(iv); demoState = "done"; demoLive.textContent = "↺ replay"; demoLive.classList.add("again"); }
-    }, 42);
-  }, 6600);
-}
-demoLive.addEventListener("click", () => { if (demoState === "done") playDemo(); });
-new IntersectionObserver((es) => { if (es[0].isIntersecting && demoState === "idle") playDemo(); }, { threshold: 0.35 })
-  .observe(document.getElementById("demo"));
-
-init();
-if (reduceMotion) draw(performance.now()); else requestAnimationFrame(loop);
-</script>
-
-  <script>
-    if (typeof gsap !== 'undefined' && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      gsap.from(".gsap-reveal", {
-        y: 40,
-        opacity: 0,
-        duration: 1,
-        stagger: 0.15,
-        ease: "power3.out",
-        delay: 0.2
-      });
-    }
-  </script>
+<script defer src="/site/js/swarm.js"></script>
+<script defer src="/site/js/sparkle.js"></script>
 </body>
 </html>

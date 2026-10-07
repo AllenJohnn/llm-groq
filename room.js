@@ -15,7 +15,7 @@ import { makeLink, attachWire, wireReady, sendFrame, resetLink } from "./room/tr
 import { pledgeOf, calculateClusterPledge, formatLayerRange, allocateLayers } from "./room/allocation.js";
 import { getGroqApiKey, setGroqApiKey, loadBrowserEnv } from "./room/groq.js";
 import { streamGroqChat, completeGroqChat, formatGroqError, GROQ_PROXY_URL } from "./room/groq-client.js";
-import { perfSidebar } from "./room/perf-sidebar.js?v=20261007-resizable";
+import { perfSidebar } from "./room/perf-sidebar.js?v=20261007-graphs";
 
 // Private presentation flag for screen recordings and personal demos: /room?local-demo=1
 const LOCAL_DEMO_PRESENTATION = new URLSearchParams(location.search).get("local-demo") === "1";
@@ -172,9 +172,24 @@ const metaPromise = (async () => {
     m.phone = m.ua === "iPhone" || m.ua === "Android";
     const gbEl = $("join-gb");
     if (gbEl) {
-      if (!m.webgpu) { gbEl.value = "0"; gbEl.disabled = true; }
-      else if (m.phone) { m.contribGB = 0.5; gbEl.min = "0.5"; gbEl.step = "0.5"; gbEl.value = "0.5"; }
-      else if (m.contribGB) { m.contribGB = Math.max(1, m.contribGB); gbEl.value = m.contribGB; }
+      if (!m.webgpu) {
+        gbEl.value = "0";
+        gbEl.disabled = true;
+        $("gb-minus").disabled = true;
+        $("gb-plus").disabled = true;
+      } else {
+        $("gb-minus").disabled = false;
+        $("gb-plus").disabled = false;
+        if (m.phone) { m.contribGB = 0.5; gbEl.min = "0.5"; gbEl.step = "0.5"; gbEl.value = "0.5"; }
+        else if (m.contribGB) { m.contribGB = Math.max(1, m.contribGB); gbEl.value = m.contribGB; }
+      }
+    }
+    const capability = $("join-device-status");
+    if (capability) {
+      capability.dataset.ready = String(!!m.webgpu);
+      capability.textContent = m.webgpu
+        ? `WebGPU ready · set to contribute ${m.contribGB} GB.`
+        : "WebGPU is not available in this browser, so this device cannot contribute model memory.";
     }
     return m;
   } catch (e) {
@@ -2909,6 +2924,7 @@ function updateFallbackModeUI(enabled) {
 }
 
 function toggleFallbackMode(forceState) {
+  const userInitiated = typeof forceState !== "boolean";
   fallbackmode = typeof forceState === "boolean" ? forceState : !fallbackmode;
   isGroqMode = fallbackmode;
   if (typeof window !== "undefined") {
@@ -2934,7 +2950,7 @@ function toggleFallbackMode(forceState) {
     updateNeed(0);
     updateCluster();
     const m = $("ai-model")?.value || "qwen3.8-27b";
-    toast(LOCAL_DEMO_PRESENTATION ? "Local model mode enabled" : `⚡ Groq Cloud enabled: ${getGroqModelId(m)}`);
+    if (userInitiated) toast(LOCAL_DEMO_PRESENTATION ? "Local model mode enabled" : `⚡ Groq Cloud enabled: ${getGroqModelId(m)}`);
     aiStatus(LOCAL_DEMO_PRESENTATION ? "local model ready" : `Groq Cloud active · ${getGroqModelId(m)} · prompts sent to Groq`);
     mascot(LOCAL_DEMO_PRESENTATION ? "Local model mode is ready." : `Groq Cloud is active. Prompts are sent to Groq; ${getGroqModelId(m)} answers without downloading model weights.`);
   } else {
@@ -2950,9 +2966,9 @@ function toggleFallbackMode(forceState) {
     if ($("ai-start")) $("ai-start").style.display = "";
     if ($("ai-need")) $("ai-need").style.display = "";
     updateCluster();
-    toast(LOCAL_DEMO_PRESENTATION ? "Local model mode disabled" : "Groq Cloud off: using local WebGPU WebSlice");
+    if (userInitiated) toast(LOCAL_DEMO_PRESENTATION ? "Local model mode disabled" : "Groq Cloud off: using local WebGPU LLM ShardX");
     aiStatus(ai.engine ? `cluster online · serving ${formatLayerRange(ai.range, ai.role === "host")}` : LOCAL_DEMO_PRESENTATION ? "pick a model and press start" : "split across every device in the room");
-    mascot(LOCAL_DEMO_PRESENTATION ? "Choose a model and press Start to load it." : "WebSlice WebGPU mode active. Pick a model and press Start to download weights.");
+    mascot(LOCAL_DEMO_PRESENTATION ? "Choose a model and press Start to load it." : "LLM ShardX WebGPU mode active. Pick a model and press Start to download weights.");
   }
 }
 

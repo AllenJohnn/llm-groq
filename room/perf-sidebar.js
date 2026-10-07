@@ -1,18 +1,18 @@
-// WebSLICE performance and scaling analytics.
+// LLM ShardX performance and scaling analytics.
 // Room throughput is measured from the single sampled output stream; device cards show shard participation.
 
 const DEVICE_COLORS = [
-  "#0a84ff", // Host / You
-  "#c9cbd0",
-  "#aeb1b8",
-  "#969aa3",
-  "#d8dade",
-  "#b7bac1",
-  "#858a94",
-  "#e4e5e8",
+  "#2a45e0", // Host / You
+  "#159a78",
+  "#e39a2d",
+  "#8664d8",
+  "#d66b58",
+  "#218eaa",
+  "#b6568d",
+  "#718096",
 ];
-const PERF_CHART_TEXT = "#d2d5dc";
-const PERF_CHART_GRID = "rgba(190, 198, 210, 0.22)";
+const PERF_CHART_TEXT = "#5e616b";
+const PERF_CHART_GRID = "rgba(70, 78, 98, 0.12)";
 const PERF_SIDEBAR_WIDTH_KEY = "swarm_perf_sidebar_width";
 const PERF_SIDEBAR_MIN_WIDTH = 310;
 const PERF_SIDEBAR_MAX_WIDTH = 560;
@@ -27,6 +27,10 @@ export class PerfSidebar {
     this.liveCtx = null;
     this.scalingCtx = null;
     this.sessionCtx = null;
+    this.deviceCanvas = null;
+    this.comparisonCanvas = null;
+    this.deviceShareChart = null;
+    this.deviceComparisonChart = null;
     
     // Live stream state
     this.isStreaming = false;
@@ -135,6 +139,7 @@ export class PerfSidebar {
     });
     this.clusterSize = this.devices.length;
     this.updateDeviceListUI();
+    this.renderDevicePerformance();
     this.renderScalingChart();
     this.renderLiveChart();
     this.renderSessionChart();
@@ -143,6 +148,7 @@ export class PerfSidebar {
   setBackend(backend) {
     this.backend = backend === "cloud" ? "cloud" : "local";
     this.renderShardFlow(this.lastInstantTps);
+    this.renderDeviceShareChart();
     this.renderScalingChart();
   }
 
@@ -151,7 +157,7 @@ export class PerfSidebar {
     const style = document.createElement("style");
     style.id = "perf-sidebar-styles";
     style.textContent = `
-      /* ---- WebSLICE Performance & Scaling Sidebar ---- */
+      /* ---- LLM ShardX Performance & Scaling Sidebar ---- */
       #perf-sidebar {
         flex: 1 1 360px;
         max-width: 500px;
@@ -491,6 +497,53 @@ export class PerfSidebar {
         display: none;
       }
 
+      .perf-viz-card {
+        grid-column: 1 / -1;
+        padding: 16px 18px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--panel);
+        box-shadow: 0 1px 2px rgba(20, 22, 29, .03);
+      }
+      .perf-viz-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 8px;
+      }
+      .perf-viz-title { color: var(--text); font: 600 14px/1.35 var(--sans); }
+      .perf-viz-subtitle { margin-top: 3px; color: var(--muted); font: 12px/1.4 var(--sans); }
+      .perf-viz-badge {
+        flex: none; padding: 5px 9px; border: 1px solid var(--border); border-radius: 999px;
+        background: var(--panel-2); color: var(--muted); font: 600 10px/1 var(--sans);
+      }
+      .perf-device-canvas-wrap, .perf-compare-canvas-wrap {
+        position: relative; width: 100%; height: 210px; min-height: 160px;
+      }
+      .perf-compare-canvas-wrap { height: 190px; min-height: 150px; margin: 10px 0 14px; }
+      .perf-device-canvas-wrap canvas, .perf-compare-canvas-wrap canvas { display: block; width: 100%; height: 100%; }
+      .perf-viz-empty {
+        position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+        padding: 18px; border-radius: 12px; background: color-mix(in srgb, var(--panel) 88%, transparent);
+        color: var(--muted); text-align: center; font: 12px/1.5 var(--sans); pointer-events: none;
+      }
+      .perf-viz-empty[hidden] { display: none; }
+      .perf-device-status-list {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; margin-top: 10px;
+      }
+      .perf-device-status {
+        display: flex; align-items: flex-start; gap: 9px; min-width: 0; padding: 9px 10px;
+        border: 1px solid var(--border-2); border-radius: 11px; background: var(--panel-2);
+      }
+      .perf-device-status-dot { width: 8px; height: 8px; flex: none; margin-top: 4px; border-radius: 50%; }
+      .perf-device-status-copy { min-width: 0; }
+      .perf-device-status-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); font: 600 12px/1.3 var(--sans); }
+      .perf-device-status-meta { margin-top: 3px; color: var(--muted); font: 11px/1.35 var(--sans); }
+      .perf-viz-legend { display: flex; flex-wrap: wrap; gap: 10px 14px; margin-top: 8px; }
+      .perf-viz-legend-item { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font: 11px/1.3 var(--sans); }
+      .perf-viz-legend-item i { width: 8px; height: 8px; border-radius: 3px; }
+
       /* Animated model-shard flow: the stream rate is shared, each node shows its assigned work. */
       .perf-flow {
         grid-column: 1 / -1;
@@ -552,7 +605,11 @@ export class PerfSidebar {
         display: block; margin: 6px 0 0 15px;
         font: 10.5px/1.25 var(--sans); color: var(--muted);
       }
-      .perf-chart-title { margin: 4px 0 8px; font: 500 12px/1.4 var(--sans); color: var(--muted); }
+      .perf-chart-title { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 7px 12px; margin: 4px 0 8px; font: 500 12px/1.4 var(--sans); color: var(--muted); }
+      .perf-live-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; color: var(--muted); font: 11px/1.3 var(--sans); }
+      .perf-live-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+      .perf-live-legend-swatch { width: 16px; height: 2px; border-radius: 2px; background: #2a45e0; }
+      .perf-live-legend-swatch.raw { height: 1px; background: #8a9afa; }
       .perf-flow-link {
         position: relative; flex: 1 0 30px; height: 2px; min-width: 30px;
         background: color-mix(in srgb, var(--accent) 20%, var(--border));
@@ -725,7 +782,10 @@ export class PerfSidebar {
         background: var(--panel);
       }
       .perf-compare-title { font: 600 13px/1.3 var(--sans); color: var(--text); }
-      .perf-compare-model { margin-top: 3px; font: 11px/1.35 var(--sans); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .perf-compare-context { display: flex; flex-wrap: wrap; align-items: center; gap: 7px 10px; margin-top: 8px; color: var(--muted); font: 11px/1.4 var(--sans); }
+      .perf-compare-current { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--border)); border-radius: 999px; background: color-mix(in srgb, var(--accent) 6%, var(--panel)); color: var(--text); font-weight: 600; }
+      .perf-compare-current::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #159a78; }
+      .perf-compare-model { margin-top: 4px; font: 11px/1.4 var(--sans); color: var(--muted); white-space: normal; }
       .perf-compare-grid { display: grid; grid-template-columns: minmax(94px, 1.35fr) repeat(3, minmax(48px, .8fr)); gap: 6px; align-items: center; }
       .perf-compare-head { margin-top: 13px; padding: 0 6px 6px; color: var(--muted); font: 9px/1.2 var(--sans); }
       .perf-compare-row { min-height: 48px; padding: 7px 6px; border-top: 1px solid color-mix(in srgb, var(--border) 72%, transparent); color: var(--text); font: 11px/1.2 var(--sans); }
@@ -878,7 +938,7 @@ export class PerfSidebar {
       btn.id = "topbar-perf-btn";
       btn.className = "topbar-perf-chip active";
       btn.type = "button";
-      btn.title = "Toggle Speed & WebSLICE Scaling Analytics";
+      btn.title = "Toggle Speed & LLM ShardX Scaling Analytics";
       btn.innerHTML = `
         <svg class="topbar-perf-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
@@ -943,11 +1003,32 @@ export class PerfSidebar {
           <div class="perf-hero-sub" id="perf-hero-sub">Start a local model to begin</div>
         </div>
 
-        <div class="perf-chart-title">Speed while the answer is being written</div>
+        <div class="perf-chart-title">
+          <span>Answer speed over time</span>
+          <span class="perf-live-legend" aria-label="Chart series">
+            <span class="perf-live-legend-item"><i class="perf-live-legend-swatch raw" aria-hidden="true"></i>Measured</span>
+            <span class="perf-live-legend-item"><i class="perf-live-legend-swatch" aria-hidden="true"></i>5-sample average</span>
+          </span>
+        </div>
         <div class="perf-canvas-wrap" id="perf-live-canvas-wrap">
-          <canvas id="perf-live-canvas" width="298" height="124"></canvas>
+          <canvas id="perf-live-canvas" width="298" height="124" role="img" aria-label="Live answer speed over time, showing measured speed and a rolling five-sample average"></canvas>
           <div class="perf-canvas-empty" id="perf-live-empty">Your answer speed will appear here while it is being written.</div>
         </div>
+
+        <section class="perf-viz-card" aria-labelledby="perf-device-viz-title">
+          <div class="perf-viz-head">
+            <div>
+              <div class="perf-viz-title" id="perf-device-viz-title">Device contribution</div>
+              <div class="perf-viz-subtitle" id="perf-device-viz-subtitle">GPU memory pledged by each device in this room</div>
+            </div>
+            <span class="perf-viz-badge" id="perf-device-viz-badge">1 DEVICE</span>
+          </div>
+          <div class="perf-device-canvas-wrap" id="perf-device-canvas-wrap">
+            <canvas id="perf-device-canvas" aria-label="A chart of device contributions to model inference"></canvas>
+            <div class="perf-viz-empty" id="perf-device-viz-empty" hidden></div>
+          </div>
+          <div class="perf-device-status-list" id="perf-device-status-list"></div>
+        </section>
 
         <div class="perf-flow" id="perf-shard-flow">
           <div class="perf-flow-head">
@@ -984,10 +1065,22 @@ export class PerfSidebar {
         </div>
 
         <div class="perf-compare" aria-live="polite">
-          <div class="perf-compare-title">Saved results by device count</div>
+          <div class="perf-compare-title">Past speed by device setup</div>
+          <div class="perf-compare-context">
+            <span class="perf-compare-current" id="perf-compare-current-devices" role="status" aria-live="polite">Connected now: 1 device</span>
+            <span>Chart and rows below show saved answers. They can include setups that are no longer online.</span>
+          </div>
           <div class="perf-compare-model" id="perf-compare-model">Complete a local answer to start comparing.</div>
+          <div class="perf-compare-canvas-wrap" id="perf-compare-canvas-wrap">
+            <canvas id="perf-compare-canvas" role="img" aria-label="Historical average throughput and best answer peak by device setup"></canvas>
+            <div class="perf-viz-empty" id="perf-compare-chart-empty">Complete a local answer with each device setup to build a speed comparison.</div>
+          </div>
+          <div class="perf-viz-legend" aria-hidden="true">
+            <span class="perf-viz-legend-item"><i style="background:#2a45e0"></i>Average speed</span>
+            <span class="perf-viz-legend-item"><i style="background:#159a78"></i>Best answer peak</span>
+          </div>
           <div class="perf-compare-grid perf-compare-head" aria-hidden="true">
-            <span>Setup</span><span>Avg. pieces/s</span><span>Best pieces/s</span><span>First reply</span>
+            <span>Setup</span><span>Avg. pieces/s</span><span>Best peak</span><span>First reply</span>
           </div>
           <div id="perf-compare-rows"></div>
           <div class="perf-compare-empty" id="perf-compare-empty">Your completed local answers will be saved on this browser.</div>
@@ -1003,9 +1096,7 @@ export class PerfSidebar {
     // Check stored collapse state
     try {
       const stored = localStorage.getItem("swarm_perf_sidebar");
-      if (stored === "closed") {
-        this.setCollapsed(true);
-      }
+      this.setCollapsed(stored !== "open");
     } catch {}
   }
 
@@ -1015,12 +1106,19 @@ export class PerfSidebar {
       closeBtn.onclick = () => this.toggleSidebar();
     }
 
+    const chatTab = document.getElementById("room-chat-tab");
+    const performanceTab = document.getElementById("room-performance-tab");
+    if (chatTab) chatTab.onclick = () => this.setCollapsed(true);
+    if (performanceTab) performanceTab.onclick = () => this.setCollapsed(false);
+
     this.setupSidebarResizing();
 
     window.addEventListener("resize", () => {
       this.resizeCanvases();
       this.renderScalingChart();
       this.renderLiveChart();
+      this.renderDeviceShareChart();
+      this.renderDeviceComparisonChart();
       this.renderSessionChart();
     });
 
@@ -1029,6 +1127,8 @@ export class PerfSidebar {
         this.resizeCanvases();
         this.renderScalingChart();
         this.renderLiveChart();
+        this.renderDeviceShareChart();
+        this.renderDeviceComparisonChart();
         this.renderSessionChart();
       });
       ro.observe(this.container);
@@ -1121,7 +1221,18 @@ export class PerfSidebar {
 
   setCollapsed(collapsed) {
     if (!this.container) return;
+    this.roomScreen?.classList.toggle("room-performance-view", !collapsed);
     const btn = document.getElementById("topbar-perf-btn");
+    const chatTab = document.getElementById("room-chat-tab");
+    const performanceTab = document.getElementById("room-performance-tab");
+    if (chatTab) {
+      chatTab.classList.toggle("active", collapsed);
+      chatTab.setAttribute("aria-pressed", String(collapsed));
+    }
+    if (performanceTab) {
+      performanceTab.classList.toggle("active", !collapsed);
+      performanceTab.setAttribute("aria-pressed", String(!collapsed));
+    }
     if (collapsed) {
       this.container.classList.add("collapsed");
       if (btn) btn.classList.remove("active");
@@ -1135,6 +1246,8 @@ export class PerfSidebar {
         this.resizeCanvases();
         this.renderScalingChart();
         this.renderLiveChart();
+        this.renderDeviceShareChart();
+        this.renderDeviceComparisonChart();
         this.renderSessionChart();
       }, 150);
     }
@@ -1144,6 +1257,8 @@ export class PerfSidebar {
     this.liveCanvas = document.getElementById("perf-live-canvas");
     this.scalingCanvas = document.getElementById("perf-scaling-canvas");
     this.sessionCanvas = document.getElementById("perf-session-canvas");
+    this.deviceCanvas = document.getElementById("perf-device-canvas");
+    this.comparisonCanvas = document.getElementById("perf-compare-canvas");
     if (this.liveCanvas) this.liveCtx = this.liveCanvas.getContext("2d");
     if (this.scalingCanvas) this.scalingCtx = this.scalingCanvas.getContext("2d");
     if (this.sessionCanvas) this.sessionCtx = this.sessionCanvas.getContext("2d");
@@ -1155,6 +1270,8 @@ export class PerfSidebar {
     if (this.liveChartInstance) this.liveChartInstance.resize();
     if (this.scalingChartInstance) this.scalingChartInstance.resize();
     if (this.sessionChartInstance) this.sessionChartInstance.resize();
+    if (this.deviceShareChart) this.deviceShareChart.resize();
+    if (this.deviceComparisonChart) this.deviceComparisonChart.resize();
   }
 
   updateDeviceListUI() {
@@ -1221,6 +1338,7 @@ export class PerfSidebar {
       }).join("");
     }
     this.renderShardFlow(this.lastInstantTps);
+    this.renderDeviceShareChart();
   }
 
   renderShardFlow(speed = this.lastInstantTps) {
@@ -1345,7 +1463,195 @@ export class PerfSidebar {
    * Displays instantaneous tok/s curve over time with leading pulse ring,
    * showing per-device velocity traces when multiple devices are in the grid.
    */
-  
+
+  renderDeviceShareChart() {
+    if (!this.deviceCanvas || typeof document === "undefined") return;
+    const titleEl = document.getElementById("perf-device-viz-title");
+    const subtitleEl = document.getElementById("perf-device-viz-subtitle");
+    const badgeEl = document.getElementById("perf-device-viz-badge");
+    const emptyEl = document.getElementById("perf-device-viz-empty");
+    const statusList = document.getElementById("perf-device-status-list");
+    const localDevices = this.devices || [];
+    const assignedLayers = this.backend === "local" && localDevices.some(device => layerCount(device.layers) > 0);
+    const metricLabel = assignedLayers ? "Model layers" : "GPU memory pledged";
+    const metricUnit = assignedLayers ? "layers" : "GB";
+    const values = localDevices.map(device => this.backend === "cloud" ? 0 : assignedLayers
+      ? layerCount(device.layers)
+      : Math.max(0, Number(device.meta?.contribGB ?? device.meta?.budgetGB ?? device.meta?.maxBufGB) || 0));
+    const hasValues = values.some(value => value > 0);
+
+    if (titleEl) titleEl.textContent = assignedLayers ? "Model layers by device" : "GPU memory by device";
+    if (subtitleEl) subtitleEl.textContent = this.backend === "cloud"
+      ? "Online inference · local devices are not used for this answer"
+      : assignedLayers
+      ? `${this.currentModel || "Current model"} · each bar shows the layers assigned to that device`
+      : "Room capacity · start a local model to see how its layers are split";
+    if (badgeEl) badgeEl.textContent = `${localDevices.length} ${localDevices.length === 1 ? "DEVICE" : "DEVICES"}`;
+    if (emptyEl) {
+      emptyEl.hidden = hasValues || this.backend === "cloud";
+      emptyEl.textContent = "No GPU memory has been pledged yet. Compatible devices will appear here.";
+      if (this.backend === "cloud") {
+        emptyEl.hidden = false;
+        emptyEl.textContent = "Online models run outside this room, so local devices do not contribute to this answer.";
+      }
+    }
+
+    if (statusList) {
+      statusList.innerHTML = localDevices.map(device => {
+        const memory = Number(device.meta?.contribGB ?? device.meta?.budgetGB ?? device.meta?.maxBufGB) || 0;
+        const network = device.rtt !== null && device.rtt !== undefined && Number.isFinite(Number(device.rtt))
+          ? `${Math.round(Number(device.rtt))} ms response`
+          : device.self ? "This device" : "Checking connection";
+        const role = this.backend === "cloud"
+          ? "Not used by online inference"
+          : device.workerRole && device.workerRole !== "Idle"
+            ? `${device.workerRole}${device.layers ? ` · ${device.layers}` : ""}`
+            : "Connected · waiting for model";
+        const meta = [role, memory > 0 ? `${memory.toFixed(memory % 1 ? 1 : 0)} GB pledged` : "No GPU pledge", network].join(" · ");
+        return `<div class="perf-device-status">
+          <i class="perf-device-status-dot" style="background:${device.color}"></i>
+          <div class="perf-device-status-copy">
+            <div class="perf-device-status-name">${escapeHtml(device.name || "Device")}${device.self ? " (you)" : ""}</div>
+            <div class="perf-device-status-meta">${escapeHtml(meta)}</div>
+          </div>
+        </div>`;
+      }).join("");
+    }
+
+    if (!this.deviceShareChart) {
+      this.deviceShareChart = new Chart(this.deviceCanvas, {
+        type: "bar",
+        data: { labels: [], datasets: [] },
+        options: {
+          indexAxis: "y",
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 220 },
+          layout: { padding: { left: 4, right: 12, top: 4, bottom: 2 } },
+          scales: {
+            x: {
+              beginAtZero: true,
+              grace: "12%",
+              grid: { color: PERF_CHART_GRID },
+              border: { display: false },
+              title: { display: true, text: metricUnit, color: PERF_CHART_TEXT, font: { size: 11 } },
+              ticks: { color: PERF_CHART_TEXT, precision: 0, maxTicksLimit: 7, font: { size: 10 } },
+            },
+            y: {
+              grid: { display: false },
+              border: { display: false },
+              ticks: { color: PERF_CHART_TEXT, font: { size: 11 }, padding: 8 },
+            },
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              displayColors: false,
+              callbacks: {
+                label: context => {
+                  const unit = context.chart.$metricUnit || "GB";
+                  return `${Number(context.raw || 0).toFixed(unit === "GB" ? 1 : 0)} ${unit}`;
+                },
+              },
+            },
+          },
+        },
+        plugins: [{
+          id: "shardxDeviceValueLabels",
+          afterDatasetsDraw: chart => {
+            const context = chart.ctx;
+            const bars = chart.getDatasetMeta(0).data || [];
+            const values = chart.data.datasets[0]?.data || [];
+            const unit = chart.options.scales.x.title.text || "";
+            context.save();
+            context.font = "600 10px -apple-system, BlinkMacSystemFont, sans-serif";
+            bars.forEach((bar, index) => {
+              const value = Number(values[index]) || 0;
+              if (!value) return;
+              const label = `${value.toFixed(unit === "GB" ? 1 : 0)} ${unit}`;
+              const inside = bar.width > context.measureText(label).width + 18;
+              context.textAlign = inside ? "right" : "left";
+              context.fillStyle = inside ? "#ffffff" : "#343846";
+              context.fillText(label, inside ? bar.x - 8 : bar.x + 8, bar.y + 3.5);
+            });
+            context.restore();
+          },
+        }],
+      });
+    }
+
+    const chart = this.deviceShareChart;
+    chart.data.labels = localDevices.map(device => `${device.name || "Device"}${device.self ? " (you)" : ""}`);
+    chart.data.datasets = [{
+      label: metricLabel,
+      data: values,
+      backgroundColor: localDevices.map(device => `${device.color}C8`),
+      borderColor: localDevices.map(device => device.color),
+      borderWidth: 1,
+      borderRadius: 7,
+      borderSkipped: false,
+      maxBarThickness: 28,
+    }];
+    chart.$metricUnit = metricUnit;
+    chart.options.scales.x.title.text = metricUnit;
+    chart.update();
+  }
+
+  renderDeviceComparisonChart(records = null) {
+    if (!this.comparisonCanvas) return;
+    const chartEmpty = document.getElementById("perf-compare-chart-empty");
+    const allRecords = records || this.devicePerformance
+      .filter(item => !this.currentModel || item.model === this.currentModel)
+      .sort((a, b) => Number(a.deviceCount) - Number(b.deviceCount));
+    if (!this.deviceComparisonChart) {
+      this.deviceComparisonChart = new Chart(this.comparisonCanvas, {
+        type: "bar",
+        data: { labels: [], datasets: [] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 220 },
+          interaction: { mode: "index", intersect: false },
+          scales: {
+            x: { grid: { display: false }, border: { display: false }, ticks: { color: PERF_CHART_TEXT, font: { size: 10 } } },
+          y: {
+              beginAtZero: true,
+              grid: { color: PERF_CHART_GRID },
+              border: { display: false },
+              title: { display: true, text: "Text pieces / sec", color: PERF_CHART_TEXT, font: { size: 10 } },
+              ticks: { color: PERF_CHART_TEXT, maxTicksLimit: 5, font: { size: 10 } },
+            },
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              displayColors: true,
+              callbacks: {
+                title: contexts => {
+                  const context = contexts[0];
+                  const runs = context?.chart?.$runCounts?.[context.dataIndex] || 1;
+                  return `${context?.label || "Device setup"} · ${runs} completed ${runs === 1 ? "answer" : "answers"}`;
+                },
+                label: context => `${context.dataset.label}: ${Number(context.raw || 0).toFixed(1)} pieces/s`,
+              },
+            },
+          },
+        },
+      });
+    }
+    const counts = allRecords.map(item => Math.max(1, Math.floor(Number(item.deviceCount) || 1)));
+    this.deviceComparisonChart.$runCounts = allRecords.map(item => Math.max(1, Math.floor(Number(item.runs) || 1)));
+    const averageSpeeds = allRecords.map(item => Number(item.totalTokens) / Math.max(.001, Number(item.totalSeconds)));
+    const bestSpeeds = allRecords.map(item => Number(item.bestSpeed) || 0);
+    this.deviceComparisonChart.data.labels = counts.map(count => `${count}-device setup`);
+    this.deviceComparisonChart.data.datasets = [
+      { label: "Average speed", data: averageSpeeds, backgroundColor: "rgba(42,69,224,.76)", borderColor: "#2a45e0", borderWidth: 1, borderRadius: 6, maxBarThickness: 34 },
+      { label: "Best speed", data: bestSpeeds, backgroundColor: "rgba(21,154,120,.72)", borderColor: "#159a78", borderWidth: 1, borderRadius: 6, maxBarThickness: 34 },
+    ];
+    this.deviceComparisonChart.update();
+    if (chartEmpty) chartEmpty.hidden = allRecords.length > 0;
+  }
+
   renderLiveChart() {
     if (!this.liveCtx || !this.liveCanvas) return;
     
@@ -1366,28 +1672,71 @@ export class PerfSidebar {
               ticks: { color: PERF_CHART_TEXT, font: { size: 10 }, maxTicksLimit: 5 },
               grid: { display: false }
             },
-            y: {
-              beginAtZero: true,
+          y: {
+              beginAtZero: false,
+              grace: "18%",
               title: { display: true, text: 'Text pieces per second', color: PERF_CHART_TEXT, font: { size: 11 } },
               ticks: { color: PERF_CHART_TEXT, font: { size: 10 }, maxTicksLimit: 4 },
               grid: { color: PERF_CHART_GRID }
             }
           },
-          plugins: { legend: { display: false } }
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              mode: "index",
+              intersect: false,
+              callbacks: {
+                title: contexts => `${Number(contexts[0]?.parsed.x || 0).toFixed(1)} seconds`,
+                label: context => `${context.dataset.label}: ${Number(context.parsed.y || 0).toFixed(1)} pieces/s`,
+                afterBody: contexts => {
+                  const point = this.streamPoints[contexts[0]?.dataIndex];
+                  return point ? `${Number(point.total || 0).toLocaleString()} pieces generated` : "";
+                },
+              },
+            },
+          },
+          interaction: { mode: "index", intersect: false },
         }
       });
     }
 
-    const datasets = this.streamPoints.length >= 2 ? [{
-      label: 'Answer speed',
-      data: this.streamPoints.map(p => ({x: p.t, y: p.tps})),
-      borderColor: "#0a84ff",
-      borderWidth: 2,
-      fill: true,
-      backgroundColor: "rgba(10, 132, 255, 0.14)",
-      tension: 0.4,
-      pointRadius: 0
-    }] : [];
+    const gradient = this.liveCtx.createLinearGradient(0, 0, 0, this.liveCanvas.height || 220);
+    gradient.addColorStop(0, "rgba(42, 69, 224, 0.22)");
+    gradient.addColorStop(1, "rgba(42, 69, 224, 0.015)");
+    const datasets = this.streamPoints.length >= 2 ? [
+      {
+        label: "Measured speed",
+        data: this.streamPoints.map(p => ({ x: p.t, y: p.tps })),
+        borderColor: "rgba(42, 69, 224, 0.38)",
+        borderWidth: 1.25,
+        fill: false,
+        tension: 0.12,
+        pointRadius: 0,
+        pointHitRadius: 8,
+        pointHoverRadius: 3,
+      },
+      {
+        label: "5-sample average",
+        data: this.streamPoints.map((point, index, points) => {
+          if (index < 4) return { x: point.t, y: null };
+          const start = Math.max(0, index - 4);
+          const window = points.slice(start, index + 1);
+          const average = window.reduce((sum, sample) => sum + sample.tps, 0) / window.length;
+          return { x: point.t, y: average };
+        }),
+        borderColor: "#2a45e0",
+        borderWidth: 2.5,
+        fill: true,
+        backgroundColor: gradient,
+        tension: 0.28,
+        pointRadius: 0,
+        pointHitRadius: 10,
+        pointHoverRadius: 4,
+        pointHoverBackgroundColor: "#ffffff",
+        pointHoverBorderColor: "#2a45e0",
+        pointHoverBorderWidth: 2,
+      },
+    ] : [];
 
     this.liveChartInstance.data.datasets = datasets;
     this.liveChartInstance.update();
@@ -1582,16 +1931,25 @@ export class PerfSidebar {
     const rowsEl = document.getElementById("perf-compare-rows");
     const emptyEl = document.getElementById("perf-compare-empty");
     const modelEl = document.getElementById("perf-compare-model");
+    const currentDevicesEl = document.getElementById("perf-compare-current-devices");
     if (!rowsEl || !emptyEl || !modelEl) return;
+
+    const onlineCount = this.devices.length;
+    if (currentDevicesEl) {
+      currentDevicesEl.textContent = onlineCount
+        ? `Connected now: ${onlineCount} ${onlineCount === 1 ? "device" : "devices"}`
+        : "Connected now: no devices";
+    }
 
     const newest = [...this.devicePerformance].sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")))[0];
     const model = this.currentModel || newest?.model || "";
     modelEl.textContent = model
-      ? `${model} · averages of saved local answers; different prompts can affect speed.`
+      ? `${model} · completed local answers; prompts and device load can affect speed.`
       : "Complete a local answer to start comparing.";
     const records = this.devicePerformance
       .filter(item => item.model === model)
       .sort((a, b) => Number(a.deviceCount) - Number(b.deviceCount));
+    this.renderDeviceComparisonChart(records);
     const baseline = records.find(item => Number(item.deviceCount) === 1);
 
     rowsEl.innerHTML = records.map(item => {
@@ -1613,7 +1971,7 @@ export class PerfSidebar {
         comparison = "run once on 1 device";
       }
       return `<div class="perf-compare-grid perf-compare-row">
-        <span class="perf-compare-count">${count} ${count === 1 ? "device" : "devices"}<small class="perf-compare-detail">${runs} ${runs === 1 ? "saved answer" : "saved answers"} · ${escapeHtml(comparison)}</small></span>
+        <span class="perf-compare-count">${count}-device setup<small class="perf-compare-detail">${runs} ${runs === 1 ? "saved answer" : "saved answers"} · ${escapeHtml(comparison)}</small></span>
         <span class="perf-compare-value">${Number.isFinite(speed) ? speed.toFixed(1) : "0.0"}/s</span>
         <span class="perf-compare-value">${peak.toFixed(1)}/s</span>
         <span class="perf-compare-value">${firstReply}</span>
@@ -1681,6 +2039,7 @@ export class PerfSidebar {
       this.currentModel = nextModel;
       this.renderDevicePerformance();
       this.backend = opts.backend || 'local';
+      this.renderDeviceShareChart();
       this.currentDeviceCount = Math.max(1, Number(opts.deviceCount) || this.clusterSize || this.devices.length || 1);
       const statusPill = typeof document !== 'undefined' ? document.getElementById('perf-status-pill') : null;
       const statusLabel = typeof document !== 'undefined' ? document.getElementById('perf-status-label') : null;
@@ -1757,16 +2116,7 @@ export class PerfSidebar {
         const windowStart = this.recentTokenTimes[0];
         const windowEnd = this.recentTokenTimes[this.recentTokenTimes.length - 1];
         const windowSpanSec = (windowEnd - windowStart) / 1000;
-        if (windowSpanSec > 0.05) {
-          instantTps = this.recentTokenTimes.length / windowSpanSec;
-        } else {
-          instantTps = this.recentTokenTimes.length;
-        }
-      } else if (this.recentTokenTimes.length === 1 && this.tokenCount > 0) {
-        // If we only have 1 token in the sliding window, use the overall average instead of dropping to 0
-        if (elapsedSec > 0) {
-          instantTps = this.tokenCount / elapsedSec;
-        }
+        instantTps = (this.recentTokenTimes.length - 1) / Math.max(windowSpanSec, 0.05);
       }
       
       if (instantTps > this.peakTps) {
@@ -1784,7 +2134,7 @@ export class PerfSidebar {
         }
       }
       
-      this.streamPoints.push({ t: elapsedSec, tps: instantTps, total: this.tokenCount });
+      if (instantTps > 0) this.streamPoints.push({ t: elapsedSec, tps: instantTps, total: this.tokenCount });
       this.lastInstantTps = instantTps;
       
       if (typeof document !== 'undefined') {
@@ -1856,6 +2206,16 @@ export class PerfSidebar {
       console.warn("perfSidebar.onGenDone failed:", e);
     }
   }
+}
+
+function layerCount(rangeLabel) {
+  const text = String(rangeLabel || "");
+  if (/\b0\s+layers?\b/i.test(text) || /embed\/head only/i.test(text)) return 0;
+  const match = text.match(/\blayers?\s+(\d+)(?:\s*[–—-]\s*(\d+))?/i);
+  if (!match) return 0;
+  const start = Number(match[1]);
+  const end = match[2] ? Number(match[2]) : start;
+  return Math.max(0, end - start + 1);
 }
 
 function escapeHtml(str) {
