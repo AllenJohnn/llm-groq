@@ -1,4 +1,4 @@
-﻿// Model catalogue for the room: URLs, layer counts, memory needs, context length.
+// Model catalogue for the room: URLs, layer counts, memory needs, context length.
 
 export const NEED_GB = {
   "qwen3-0.6b": 0.8,
@@ -10,7 +10,6 @@ export const NEED_GB = {
   "qwq-32b": 21.0,
   "qwen3.8-27b": 16.5,
   "phi-4-mini": 3.0,
-  "smollm-135m": 0.3,
   "smollm-135m": 0.3,
 };
 
@@ -34,50 +33,50 @@ export function getGroqModelId(modelKey) {
 }
 
 export const MODELS = {
-  "qwen3-0.6b": { label: "Qwen3 0.6B Â· Q8", kind: "gguf", thinking: false,
+  "qwen3-0.6b": { label: "Qwen3 0.6B · Q8", kind: "gguf", thinking: true,
     gguf: "https://huggingface.co/Qwen/Qwen3-0.6B-GGUF/resolve/main/Qwen3-0.6B-Q8_0.gguf",
     ggufFallback: "https://hf-mirror.com/Qwen/Qwen3-0.6B-GGUF/resolve/main/Qwen3-0.6B-Q8_0.gguf",
     cfg: "https://huggingface.co/Qwen/Qwen3-0.6B/resolve/main/config.json",
     tok: "https://huggingface.co/Qwen/Qwen3-0.6B/resolve/main/tokenizer.json" },
-  "qwen3-1.7b": { label: "Qwen3 1.7B Â· Q8", kind: "gguf", thinking: false,
+  "qwen3-1.7b": { label: "Qwen3 1.7B · Q8", kind: "gguf", thinking: true,
     gguf: "https://huggingface.co/Qwen/Qwen3-1.7B-GGUF/resolve/main/Qwen3-1.7B-Q8_0.gguf",
     ggufFallback: "https://hf-mirror.com/Qwen/Qwen3-1.7B-GGUF/resolve/main/Qwen3-1.7B-Q8_0.gguf",
     cfg: "https://huggingface.co/Qwen/Qwen3-1.7B/resolve/main/config.json",
     tok: "https://huggingface.co/Qwen/Qwen3-1.7B/resolve/main/tokenizer.json" },
-  "qwen3-4b": { label: "Qwen3 4B Â· Q8", kind: "gguf", thinking: false,
+  "qwen3-4b": { label: "Qwen3 4B · Q8", kind: "gguf", thinking: true,
     gguf: "https://huggingface.co/Qwen/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q8_0.gguf",
     ggufFallback: "https://hf-mirror.com/Qwen/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q8_0.gguf",
     cfg: "https://huggingface.co/Qwen/Qwen3-4B/resolve/main/config.json",
     tok: "https://huggingface.co/Qwen/Qwen3-4B/resolve/main/tokenizer.json" },
-  "qwen2.5-coder-1.5b": { label: "Qwen2.5 Coder 1.5B Â· Q4", kind: "gguf", thinking: false,
+  "qwen2.5-coder-1.5b": { label: "Qwen2.5 Coder 1.5B · Q4", kind: "gguf", thinking: false,
     gguf: "https://hf-mirror.com/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF/resolve/main/qwen2.5-coder-1.5b-instruct-q4_0.gguf",
     ggufFallback: "https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF/resolve/main/qwen2.5-coder-1.5b-instruct-q4_0.gguf",
     cfg: "https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct/resolve/main/config.json",
     tok: "https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct/resolve/main/tokenizer.json" },
-  "qwen2.5-coder-7b": { label: "Qwen2.5 Coder 7B Â· Q4 (Code & Web)", kind: "gguf", thinking: false,
+  "qwen2.5-coder-7b": { label: "Qwen2.5 Coder 7B · Q4 (Code & Web)", kind: "gguf", thinking: false,
     gguf: "https://huggingface.co/bartowski/Qwen2.5-Coder-7B-Instruct-GGUF/resolve/main/Qwen2.5-Coder-7B-Instruct-Q4_0.gguf",
     ggufFallback: "https://hf-mirror.com/bartowski/Qwen2.5-Coder-7B-Instruct-GGUF/resolve/main/Qwen2.5-Coder-7B-Instruct-Q4_0.gguf",
     cfg: "https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct/resolve/main/config.json",
     tok: "https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct/resolve/main/tokenizer.json" },
-  "deepseek-r1-distill-qwen-14b": { label: "DeepSeek-R1 Distill Qwen 14B Â· Q4 (Reasoning)", kind: "gguf", thinking: false,
+  "deepseek-r1-distill-qwen-14b": { label: "DeepSeek-R1 Distill Qwen 14B · Q4 (Reasoning)", kind: "gguf", thinking: true,
     gguf: "https://huggingface.co/bartowski/DeepSeek-R1-Distill-Qwen-14B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-14B-Q4_0.gguf",
     ggufFallback: "https://hf-mirror.com/bartowski/DeepSeek-R1-Distill-Qwen-14B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-14B-Q4_0.gguf",
     cfg: "https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-14B/resolve/main/config.json",
     tok: "https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-14B/resolve/main/tokenizer.json" },
-  "qwq-32b": { label: "Qwen QwQ 32B Â· Q4 (Deep Reasoning)", kind: "gguf", thinking: true,
+  "qwq-32b": { label: "Qwen QwQ 32B · Q4 (Deep Reasoning)", kind: "gguf", thinking: true,
     gguf: "https://huggingface.co/bartowski/Qwen_QwQ-32B-GGUF/resolve/main/Qwen_QwQ-32B-Q4_0.gguf",
     ggufFallback: "https://hf-mirror.com/bartowski/Qwen_QwQ-32B-GGUF/resolve/main/Qwen_QwQ-32B-Q4_0.gguf",
     cfg: "https://huggingface.co/Qwen/QwQ-32B/resolve/main/config.json",
     tok: "https://huggingface.co/Qwen/QwQ-32B/resolve/main/tokenizer.json" },
-  "phi-4-mini": { label: "Phi-4 mini Â· Q4", kind: "gguf", arch: "phi3", thinking: false,
+  "phi-4-mini": { label: "Phi-4 mini · Q4", kind: "gguf", arch: "phi3", thinking: false,
     gguf: "https://huggingface.co/bartowski/microsoft_Phi-4-mini-instruct-GGUF/resolve/main/microsoft_Phi-4-mini-instruct-Q4_0.gguf",
     ggufFallback: "https://hf-mirror.com/bartowski/microsoft_Phi-4-mini-instruct-GGUF/resolve/main/microsoft_Phi-4-mini-instruct-Q4_0.gguf",
     cfg: "https://huggingface.co/microsoft/Phi-4-mini-instruct/resolve/main/config.json" },
-  "smollm-135m": { label: "SmolLM 135M Â· bf16", kind: "st", thinking: false,
+  "smollm-135m": { label: "SmolLM 135M · bf16", kind: "st", thinking: false,
     st: "https://huggingface.co/HuggingFaceTB/SmolLM-135M-Instruct/resolve/main/model.safetensors",
     cfg: "https://huggingface.co/HuggingFaceTB/SmolLM-135M-Instruct/resolve/main/config.json",
     tok: "https://huggingface.co/HuggingFaceTB/SmolLM-135M-Instruct/resolve/main/tokenizer.json" },
-  "qwen3.8-27b": { label: "Qwen 3.8 27B Â· Q4", kind: "qwen35", thinking: false,
+  "qwen3.8-27b": { label: "Qwen 3.8 27B · Q4", kind: "qwen35", thinking: false,
     gguf: "https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/resolve/main/Qwen3.8-27B-Q4_0.gguf",
     ggufFallback: "https://hf-mirror.com/unsloth/Qwen3.8-27B-GGUF/resolve/main/Qwen3.8-27B-Q4_0.gguf", cfg: "https://huggingface.co/Qwen/Qwen2.5-32B-Instruct/resolve/main/config.json", tok: "https://huggingface.co/Qwen/Qwen2.5-32B-Instruct/resolve/main/tokenizer.json" },
 };
@@ -145,5 +144,4 @@ export async function detectLocalModel(modelKey) {
   }
   return null;
 }
-
 

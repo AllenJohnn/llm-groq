@@ -15,6 +15,13 @@ Deno.test("models: catalog has all 10 expected models", () => {
   }
 });
 
+Deno.test("models: Qwen3 models enable thinking-mode prompt handling", () => {
+  for (const key of ["qwen3-0.6b", "qwen3-1.7b", "qwen3-4b"]) {
+    assert(MODELS[key].thinking === true, `${key} should have thinking enabled`);
+  }
+  assert(MODELS["smollm-135m"].thinking === false, "SmolLM should not have thinking enabled");
+});
+
 Deno.test("models: Qwen2.5 Coder 1.5B uses the fast mirror and has an HF fallback", () => {
   const m = MODELS["qwen2.5-coder-1.5b"];
   assert(m.gguf.startsWith("https://hf-mirror.com/"), "Qwen2.5 Coder should prefer the fast mirror");
@@ -94,6 +101,30 @@ Deno.test("models: detectLocalModel accepts complete local files and records ori
     globalThis.fetch = origFetch;
     // restore original URL
     MODELS[modelKey].gguf = remoteUrl;
+  }
+});
+
+Deno.test("models: shared /models directory never overrides the model tokenizer", async () => {
+  const origFetch = globalThis.fetch;
+  const modelKey = "qwen3-0.6b";
+  const model = MODELS[modelKey];
+  const originalGguf = model.gguf;
+  const originalTok = model.tok;
+  const requested = [];
+
+  try {
+    globalThis.fetch = async (url) => {
+      requested.push(String(url));
+      return { ok: true, headers: new Headers({ "content-length": "838860800" }) };
+    };
+
+    const localPath = await detectLocalModel(modelKey);
+    assert(localPath === "/models/qwen3-0.6b.gguf", "expected shared-directory local model candidate");
+    assert(model.tok === originalTok, "shared tokenizer must not replace this model's tokenizer URL");
+    assert(!requested.includes("/models/tokenizer.json"), "loader must not probe a shared tokenizer.json");
+  } finally {
+    globalThis.fetch = origFetch;
+    model.gguf = originalGguf;
   }
 });
 

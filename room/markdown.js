@@ -16,6 +16,32 @@ const renderer = new marked.Renderer();
 renderer.code = function({ text, lang }) {
   const language = (lang || "").trim().toLowerCase() || "code";
   const cleanCode = esc(text);
+  
+  if (language === 'html') {
+    const rawHtml = text.replace(/"/g, '&quot;');
+    return `<div class="code-block has-tabs" data-lang="html">
+  <div class="code-header">
+    <div class="code-tabs" style="display: flex; gap: 8px;">
+      <button class="code-tab-btn active" onclick="window.switchCodeTab(this, 'code')" style="background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; cursor: pointer; color: var(--text); font-size: 13px; font-weight: 600;">Code</button>
+      <button class="code-tab-btn" onclick="window.switchCodeTab(this, 'preview')" style="background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 4px 10px; cursor: pointer; color: var(--muted); font-size: 13px; font-weight: 600;">Live Preview</button>
+    </div>
+    <div style="flex:1"></div>
+    <button class="code-copy-btn" onclick="copyCode(this)" title="Copy code" aria-label="Copy code">
+      <svg class="copy-icon" width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M4 2a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6zM2 5a1 1 0 0 0-1 1v8a2 2 0 0 0 2 2h6a1 1 0 0 0 1-1v-1H3a2 2 0 0 1-2-2V5H2z"/>
+      </svg>
+      <span class="copy-text">Copy</span>
+    </button>
+  </div>
+  <div class="code-tab-content code-view active">
+    <pre><code class="language-html">${cleanCode}</code></pre>
+  </div>
+  <div class="code-tab-content preview-view" style="display:none; background:#fff; padding:0; border-top:1px solid var(--border);">
+    <iframe sandbox="allow-scripts allow-forms allow-popups allow-modals" style="width:100%; min-height:400px; border:none; display:block;" srcdoc="${rawHtml}"></iframe>
+  </div>
+</div>`;
+  }
+
   return `<div class="code-block" data-lang="${esc(language)}">
   <div class="code-header">
     <span class="code-lang">${esc(language)}</span>

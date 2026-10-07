@@ -15,7 +15,7 @@ import { makeLink, attachWire, wireReady, sendFrame, resetLink } from "./room/tr
 import { pledgeOf, calculateClusterPledge, formatLayerRange, allocateLayers } from "./room/allocation.js";
 import { getGroqApiKey, setGroqApiKey, loadBrowserEnv } from "./room/groq.js";
 import { streamGroqChat, completeGroqChat, formatGroqError, GROQ_PROXY_URL } from "./room/groq-client.js";
-import { perfSidebar } from "./room/perf-sidebar.js";
+import { perfSidebar } from "./room/perf-sidebar.js?v=20261007-resizable";
 
 // Private presentation flag for screen recordings and personal demos: /room?local-demo=1
 const LOCAL_DEMO_PRESENTATION = new URLSearchParams(location.search).get("local-demo") === "1";
@@ -1287,6 +1287,35 @@ function renderWelcomePrompts() {
 }
 
 // Global action handlers for Ant Design X components
+window.switchCodeTab = function(btn, tab) {
+  const codeBlock = btn.closest(".code-block");
+  if (!codeBlock) return;
+  
+  // Update buttons
+  const buttons = codeBlock.querySelectorAll(".code-tab-btn");
+  buttons.forEach(b => {
+    b.style.background = "transparent";
+    b.style.borderColor = "transparent";
+    b.style.color = "var(--muted)";
+    b.classList.remove("active");
+  });
+  btn.style.background = "var(--panel)";
+  btn.style.borderColor = "var(--border)";
+  btn.style.color = "var(--text)";
+  btn.classList.add("active");
+
+  // Update content
+  const codeView = codeBlock.querySelector(".code-view");
+  const previewView = codeBlock.querySelector(".preview-view");
+  if (tab === "code") {
+    if (codeView) { codeView.style.display = "block"; codeView.classList.add("active"); }
+    if (previewView) { previewView.style.display = "none"; previewView.classList.remove("active"); }
+  } else if (tab === "preview") {
+    if (codeView) { codeView.style.display = "none"; codeView.classList.remove("active"); }
+    if (previewView) { previewView.style.display = "block"; previewView.classList.add("active"); }
+  }
+};
+
 window.copyCode = function(btn) {
   const codeBlock = btn.closest(".code-block");
   if (!codeBlock) return;

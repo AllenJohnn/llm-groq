@@ -2,15 +2,21 @@
 // Room throughput is measured from the single sampled output stream; device cards show shard participation.
 
 const DEVICE_COLORS = [
-  "#2b4eff", // 0: Royal Cobalt (Host / You)
-  "#0d9488", // 1: Jade Teal
-  "#d97706", // 2: Warm Amber
-  "#7c3aed", // 3: Purple / Violet
-  "#db2777", // 4: Rose Pink
-  "#0284c7", // 5: Sky Blue
-  "#16a34a", // 6: Leaf Green
-  "#ea580c", // 7: Burnt Orange
+  "#0a84ff", // Host / You
+  "#c9cbd0",
+  "#aeb1b8",
+  "#969aa3",
+  "#d8dade",
+  "#b7bac1",
+  "#858a94",
+  "#e4e5e8",
 ];
+const PERF_CHART_TEXT = "#d2d5dc";
+const PERF_CHART_GRID = "rgba(190, 198, 210, 0.22)";
+const PERF_SIDEBAR_WIDTH_KEY = "swarm_perf_sidebar_width";
+const PERF_SIDEBAR_MIN_WIDTH = 310;
+const PERF_SIDEBAR_MAX_WIDTH = 560;
+const PERF_SIDEBAR_DEFAULT_WIDTH = 330;
 
 export class PerfSidebar {
   constructor() {
@@ -895,6 +901,9 @@ export class PerfSidebar {
     aside.id = "perf-sidebar";
     aside.className = "perf-sidebar";
     aside.innerHTML = `
+      <div class="perf-resize-handle" id="perf-resize-handle" role="separator" tabindex="0"
+        aria-orientation="vertical" aria-label="Resize Performance sidebar" aria-valuemin="310" aria-valuemax="560" aria-valuenow="330"
+        title="Drag to resize. Use the arrow keys to adjust width."></div>
       <!-- Header -->
       <div class="perf-header">
         <div class="perf-title-row">
@@ -988,6 +997,8 @@ export class PerfSidebar {
 
     roomScreen.appendChild(aside);
     this.container = aside;
+    this.roomScreen = roomScreen;
+    this.applySidebarWidth(this.getSavedSidebarWidth());
 
     // Check stored collapse state
     try {
@@ -1003,6 +1014,8 @@ export class PerfSidebar {
     if (closeBtn) {
       closeBtn.onclick = () => this.toggleSidebar();
     }
+
+    this.setupSidebarResizing();
 
     window.addEventListener("resize", () => {
       this.resizeCanvases();
@@ -1020,6 +1033,84 @@ export class PerfSidebar {
       });
       ro.observe(this.container);
     }
+  }
+
+  getSavedSidebarWidth() {
+    try {
+      const saved = Number(localStorage.getItem(PERF_SIDEBAR_WIDTH_KEY));
+      if (Number.isFinite(saved) && saved > 0) return saved;
+    } catch {}
+    return PERF_SIDEBAR_DEFAULT_WIDTH;
+  }
+
+  clampSidebarWidth(width) {
+    const maxWidth = Math.min(PERF_SIDEBAR_MAX_WIDTH, Math.floor(window.innerWidth * 0.48));
+    return Math.round(Math.max(Math.min(PERF_SIDEBAR_MIN_WIDTH, maxWidth), Math.min(maxWidth, width)));
+  }
+
+  applySidebarWidth(width) {
+    if (!this.roomScreen) return PERF_SIDEBAR_DEFAULT_WIDTH;
+    const clamped = this.clampSidebarWidth(width);
+    this.roomScreen.style.setProperty("--perf-sidebar-width", `${clamped}px`);
+    const handle = document.getElementById("perf-resize-handle");
+    if (handle) {
+      handle.setAttribute("aria-valuenow", String(clamped));
+      handle.setAttribute("aria-valuemax", String(Math.min(PERF_SIDEBAR_MAX_WIDTH, Math.floor(window.innerWidth * 0.48))));
+    }
+    return clamped;
+  }
+
+  saveSidebarWidth(width) {
+    const clamped = this.applySidebarWidth(width);
+    try { localStorage.setItem(PERF_SIDEBAR_WIDTH_KEY, String(clamped)); } catch {}
+  }
+
+  setupSidebarResizing() {
+    const handle = document.getElementById("perf-resize-handle");
+    if (!handle || !this.roomScreen) return;
+
+    let drag = null;
+    const finishDrag = (event) => {
+      if (!drag || (event && event.pointerId !== drag.pointerId)) return;
+      this.saveSidebarWidth(drag.width);
+      drag = null;
+      document.body.classList.remove("perf-sidebar-resizing");
+      window.removeEventListener("pointermove", moveDrag);
+      window.removeEventListener("pointerup", finishDrag);
+      window.removeEventListener("pointercancel", finishDrag);
+    };
+    const moveDrag = (event) => {
+      if (!drag || event.pointerId !== drag.pointerId) return;
+      drag.width = this.applySidebarWidth(drag.startWidth - (event.clientX - drag.startX));
+    };
+
+    handle.addEventListener("pointerdown", (event) => {
+      if (window.innerWidth <= 1200 || event.button !== 0) return;
+      event.preventDefault();
+      drag = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startWidth: this.getSavedSidebarWidth(),
+        width: this.getSavedSidebarWidth()
+      };
+      document.body.classList.add("perf-sidebar-resizing");
+      try { handle.setPointerCapture(event.pointerId); } catch {}
+      window.addEventListener("pointermove", moveDrag);
+      window.addEventListener("pointerup", finishDrag);
+      window.addEventListener("pointercancel", finishDrag);
+    });
+
+    handle.addEventListener("keydown", (event) => {
+      if (window.innerWidth <= 1200) return;
+      let width = this.getSavedSidebarWidth();
+      if (event.key === "ArrowLeft") width += 16;
+      else if (event.key === "ArrowRight") width -= 16;
+      else if (event.key === "Home") width = PERF_SIDEBAR_MIN_WIDTH;
+      else if (event.key === "End") width = PERF_SIDEBAR_MAX_WIDTH;
+      else return;
+      event.preventDefault();
+      this.saveSidebarWidth(width);
+    });
   }
 
   toggleSidebar() {
@@ -1271,15 +1362,15 @@ export class PerfSidebar {
           scales: {
             x: {
               type: 'linear', display: true,
-              title: { display: true, text: 'Time (seconds)', color: '#86868b', font: { size: 10 } },
-              ticks: { color: '#86868b', font: { size: 9 }, maxTicksLimit: 5 },
+              title: { display: true, text: 'Time (seconds)', color: PERF_CHART_TEXT, font: { size: 11 } },
+              ticks: { color: PERF_CHART_TEXT, font: { size: 10 }, maxTicksLimit: 5 },
               grid: { display: false }
             },
             y: {
               beginAtZero: true,
-              title: { display: true, text: 'Text pieces per second', color: '#86868b', font: { size: 10 } },
-              ticks: { color: '#86868b', font: { size: 9 }, maxTicksLimit: 4 },
-              grid: { color: 'rgba(225, 222, 210, 0.7)' }
+              title: { display: true, text: 'Text pieces per second', color: PERF_CHART_TEXT, font: { size: 11 } },
+              ticks: { color: PERF_CHART_TEXT, font: { size: 10 }, maxTicksLimit: 4 },
+              grid: { color: PERF_CHART_GRID }
             }
           },
           plugins: { legend: { display: false } }
@@ -1290,10 +1381,10 @@ export class PerfSidebar {
     const datasets = this.streamPoints.length >= 2 ? [{
       label: 'Answer speed',
       data: this.streamPoints.map(p => ({x: p.t, y: p.tps})),
-      borderColor: '#007aff',
-      borderWidth: 2.5,
+      borderColor: "#0a84ff",
+      borderWidth: 2,
       fill: true,
-      backgroundColor: 'rgba(0, 122, 255, 0.1)',
+      backgroundColor: "rgba(10, 132, 255, 0.14)",
       tension: 0.4,
       pointRadius: 0
     }] : [];
@@ -1337,12 +1428,12 @@ export class PerfSidebar {
       const currentNodes = this.backend === "cloud" ? 0 : activeNodes;
       const bgColors = [1, 2, 3, 4, 5].map(n => {
         const isActive = (n === currentNodes) || (n === 5 && currentNodes >= 5);
-        return isActive ? 'rgba(43, 78, 255, 0.6)' : 'rgba(139, 135, 122, 0.2)';
+        return isActive ? "rgba(10, 132, 255, 0.66)" : "rgba(165, 169, 177, 0.2)";
       });
 
       const borderColors = [1, 2, 3, 4, 5].map(n => {
         const isActive = (n === currentNodes) || (n === 5 && currentNodes >= 5);
-        return isActive ? '#2b4eff' : 'transparent';
+        return isActive ? "#0a84ff" : "transparent";
       });
 
       if (this.scalingChartInstance && this.scalingChartInstance.data) {
@@ -1424,13 +1515,13 @@ export class PerfSidebar {
               min: 0,
               max: 100,
               ticks: { display: false, stepSize: 25 },
-              grid: { color: "rgba(139, 135, 122, 0.24)" },
-              angleLines: { color: "rgba(139, 135, 122, 0.2)" },
-              pointLabels: { color: "#8b877a", font: { size: 9 } },
+              grid: { color: PERF_CHART_GRID },
+              angleLines: { color: PERF_CHART_GRID },
+              pointLabels: { color: PERF_CHART_TEXT, font: { size: 10 } },
             },
           },
           plugins: {
-            legend: { display: true, position: "bottom", labels: { color: "#8b877a", boxWidth: 9, padding: 8, font: { size: 9 } } },
+            legend: { display: true, position: "bottom", labels: { color: PERF_CHART_TEXT, boxWidth: 9, padding: 8, font: { size: 10 } } },
             tooltip: {
               callbacks: {
                 label: (context) => {

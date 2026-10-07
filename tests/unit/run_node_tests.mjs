@@ -13,7 +13,9 @@ const eq = (a, b, m) => {
 };
 
 let passed = 0;
+let total = 0;
 async function test(name, fn) {
+  total++;
   try {
     await fn();
     console.log(`✓ ${name}`);
@@ -420,7 +422,7 @@ await test("fallbackmode: bypasses 27B model download and uses Groq directly", (
 });
 
 await test("fallbackmode: configures the default Groq hosted model", () => {
-  assert(GROQ_DEFAULT_MODEL === "openai/gpt-oss-120b", `Expected openai/gpt-oss-120b, got ${GROQ_DEFAULT_MODEL}`);
+  assert(GROQ_DEFAULT_MODEL === "qwen/qwen3.8-27b", `Expected qwen/qwen3.8-27b, got ${GROQ_DEFAULT_MODEL}`);
 });
 
 await test("fallbackmode: parseGroqSSEChunk extracts token deltas accurately", () => {
@@ -539,4 +541,4 @@ await test("perf-sidebar: generation life-cycle updates metrics and session aggr
   assert(ps.promptCount === 1, "promptCount should increment");
 });
 
-console.log(`\nAll ${passed} tests passed successfully!`);
+console.log(`\n${passed}/${total} tests passed; ${total - passed} failed.`);

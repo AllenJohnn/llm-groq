@@ -36,7 +36,7 @@ WebSlice runs large language models across the devices in a room, in their brows
 **Run it locally:**
 
 ```bash
-git clone https://github.com/AllenJohnn/llm-groq && cd llm
+git clone https://github.com/AllenJohnn/llm.git && cd llm
 npx -y serve -l 8080 .        # any static server works; then open http://localhost:8080/room
 ```
 
@@ -132,7 +132,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) and [GOVERNANCE.md](GOVERNANCE.md). Bench
   author = {John, Allen},
   title  = {WebSlice: peer-to-peer LLM inference across browser tabs},
   year   = {2026},
-  url    = {https://github.com/AllenJohnn/llm-groq}
+  url    = {https://github.com/AllenJohnn/llm}
 }
 ```
 

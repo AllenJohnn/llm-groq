@@ -1,9 +1,13 @@
-// Device autotune: time a few cooperative-GEMV shapes on the real GPU at load and keep the winner.
+// Device kernel selection: keep inference on the numerically validated GEMV shape.
 import { WGSL } from "./wgsl/base.js";
 import { probeUnpack, coopWGSL } from "./wgsl/coop.js";
 
 export async function autotuneCoop(device, { dIn = 5120, dOut = 17408, kind = "q4" } = {}) {
-  const candidates = [[256, 4], [128, 4], [256, 8], [128, 8], [64, 4]];
+  // Keep the production kernel on the shape validated by the golden tests.
+  // The previous timing-only sweep could select a faster but numerically
+  // incorrect shape (observed with WG=128, rows=8 on Qwen3 0.6B), corrupting
+  // every generated token. Add candidates back only with numerical checks.
+  const candidates = [[256, 4]];
   const nb = dIn / 32;
   const S = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST;
   const qs = device.createBuffer({ size: dOut * (kind === "q4" ? dIn / 2 : dIn), usage: S });

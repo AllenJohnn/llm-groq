@@ -7,9 +7,6 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <title>WebGPU-accelerated Sharded LLM Inference across Compute-constrained Edge devices (WebSLICE)</title>
 <meta name="description" content="— large language model, sharded across your devices' browser tabs — no install, no server, no single GPU big enough required.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
     --paper: #f5f4ee;
@@ -283,6 +280,7 @@
     .animation-delay-2000 { animation-delay: 2s; }
     .animation-delay-4000 { animation-delay: 4s; }
   </style>
+  <link rel="stylesheet" href="/styles/amoled.css">
 </head>
 <body>
 
@@ -409,7 +407,8 @@ document.querySelectorAll(".rv").forEach(el => io.observe(el));
 // ---------- ambient node network ----------
 const cv = document.getElementById("mesh");
 const ctx = cv.getContext("2d");
-const INK = "#16171c", ACCENT = "#2b4eff", MUTED = "#8b877a";
+const INK = "#17191c", ACCENT = "#d8dadd", MUTED = "#a0a3a8";
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const NAMES = ["mac", "phone", "spark", "friend", "pc", "tablet", "tv", "watch", "laptop", "pi"];
 let W = 0, H = 0, DPR = 1;
 let pts = [], pulses = [], rings = [];
@@ -514,6 +513,7 @@ document.addEventListener("pointerdown", (e) => {
   // the two nearest devices send light over to the newcomer
   const near = pts.filter(q => q.lit && q !== p).sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y)).slice(0, 2);
   near.forEach((q, i) => setTimeout(() => sendLight(q, p), 250 + i * 500));
+  if (reduceMotion) draw(performance.now());
 });
 
 function draw(now) {
@@ -563,7 +563,7 @@ function draw(now) {
     ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(b.x, b.y); ctx.stroke();
     ctx.globalAlpha = 1; ctx.lineWidth = 1;
     const g = ctx.createRadialGradient(x, y, 0, x, y, 14);
-    g.addColorStop(0, "rgba(43,78,255,0.7)"); g.addColorStop(1, "rgba(43,78,255,0)");
+    g.addColorStop(0, "rgba(216,218,221,0.7)"); g.addColorStop(1, "rgba(216,218,221,0)");
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, 14, 0, 7); ctx.fill();
     ctx.fillStyle = ACCENT; ctx.beginPath(); ctx.arc(x, y, 2.6, 0, 7); ctx.fill();
   }
@@ -578,7 +578,7 @@ function draw(now) {
     if (p.lit) {
       const glow = 0.55 + 0.45 * Math.sin(now / 900 + p.ph);
       const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 16);
-      g.addColorStop(0, `rgba(43,78,255,${0.28 * glow})`); g.addColorStop(1, "rgba(43,78,255,0)");
+      g.addColorStop(0, `rgba(216,218,221,${0.28 * glow})`); g.addColorStop(1, "rgba(216,218,221,0)");
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, 16, 0, 7); ctx.fill();
       ctx.fillStyle = ACCENT; ctx.globalAlpha = 0.6 + 0.4 * glow;
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 0.6, 0, 7); ctx.fill();
@@ -599,7 +599,7 @@ let last = performance.now(), running = true;
 function loop(now) {
   last = now;
   if (running && scrollY < H) { physics(now); draw(now); }
-  requestAnimationFrame(loop);
+  if (!reduceMotion) requestAnimationFrame(loop);
 }
 document.addEventListener("visibilitychange", () => { running = !document.hidden; });
 addEventListener("mousemove", (e) => { mouse = { x: e.clientX, y: e.clientY }; });
@@ -625,6 +625,13 @@ function playDemo() {
   demoEl.innerHTML = "";
   demoLive.textContent = "LIVE";
   demoLive.classList.remove("again");
+  if (reduceMotion) {
+    for (const [, html] of DEMO) { const d = document.createElement("div"); d.className = "dl"; d.innerHTML = html; demoEl.appendChild(d); }
+    const answer = document.createElement("div"); answer.className = "da";
+    answer.innerHTML = `<b>THE ROOM ›</b> ${DEMO_ANS}`; demoEl.appendChild(answer);
+    demoState = "done"; demoLive.textContent = "↺ replay"; demoLive.classList.add("again");
+    return;
+  }
   for (const [t, html] of DEMO) setTimeout(() => { const d = document.createElement("div"); d.className = "dl"; d.innerHTML = html; demoEl.appendChild(d); }, t);
   setTimeout(() => {
     const a = document.createElement("div"); a.className = "da"; demoEl.appendChild(a);
@@ -641,11 +648,11 @@ new IntersectionObserver((es) => { if (es[0].isIntersecting && demoState === "id
   .observe(document.getElementById("demo"));
 
 init();
-requestAnimationFrame(loop);
+if (reduceMotion) draw(performance.now()); else requestAnimationFrame(loop);
 </script>
 
   <script>
-    if (typeof gsap !== 'undefined') {
+    if (typeof gsap !== 'undefined' && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
       gsap.from(".gsap-reveal", {
         y: 40,
         opacity: 0,

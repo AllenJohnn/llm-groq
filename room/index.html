@@ -3,9 +3,6 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -1021,6 +1018,7 @@ window.sliceStart = function(create) {
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <link rel="stylesheet" href="/room/amoled.css?v=20261007-resizable">
 </head>
 <body>
 
@@ -1294,7 +1292,7 @@ window.sliceStart = function(create) {
 </script>
 
   <script>
-    if (typeof gsap !== 'undefined') {
+    if (typeof gsap !== 'undefined' && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
       gsap.from("#join-screen .relative.z-10", {
         y: 30,
         opacity: 0,

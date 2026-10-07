@@ -40,7 +40,7 @@
       "dependencies": [
         "npm:jsdom@^29.1.1",
         "npm:peer@^1.0.2",
-        "npm:playwright@1.49.1",
+        "npm:playwright@^1.49.1",
         "npm:puppeteer@^25.12.0"
       ]
     }

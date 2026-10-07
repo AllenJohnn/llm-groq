@@ -1,6 +1,6 @@
 // Batched-prefill equivalence: prefillTokens(chunked 4) must leave the engine
 // in a state where the next forwardToken's logits match the all-sequential run.
-import { DenseEngine, makeTokenizer, argmax } from "../engine/engine.js";
+import { DenseEngine, makeTokenizer, argmax, autotuneCoop } from "../engine/engine.js";
 import { parseGGUFHeader, ggufWeights } from "../engine/gguf.js";
 const openFile = async (path) => {
   const fh = await Deno.open(path);
@@ -13,9 +13,9 @@ const readAt = await openFile(new URL("../models/qwen/model.gguf", import.meta.u
 const G = parseGGUFHeader((await readAt(0, 64 << 20)).buffer, { skipTokenizer: true });
 const tok = makeTokenizer(JSON.parse(await Deno.readTextFile(new URL("../models/qwen/tokenizer.json", import.meta.url))));
 const cfg = JSON.parse(await Deno.readTextFile(new URL("../models/qwen/config.json", import.meta.url)));
-const mk = async () => {
+const mk = async (kernel = {}) => {
   const weights = await ggufWeights(G, (i) => readAt(i.byteOffset, i.byteLength), { lo: 0, hi: cfg.num_hidden_layers, hasEmbed: true, hasHead: true });
-  return DenseEngine.create({ device, cfg, weights, layerRange: [0, cfg.num_hidden_layers], hasEmbed: true, hasHead: true, maxSeq: 128 });
+  return DenseEngine.create({ device, cfg, weights, layerRange: [0, cfg.num_hidden_layers], hasEmbed: true, hasHead: true, maxSeq: 128, ...kernel });
 };
 const ids = tok.encode("The capital of France is Paris, and the capital of Germany is Berlin. The quick brown fox");
 console.log("prompt tokens:", ids.length);
@@ -24,7 +24,9 @@ const e1 = await mk();
 let ref = null;
 for (const id of ids) ref = await e1.forwardToken(id);
 // batched
-const e2 = await mk();
+const tune = await autotuneCoop(device, { dIn: cfg.hidden_size, dOut: cfg.intermediate_size, kind: "q8" });
+console.log(`production kernel: WG=${tune.wg} rows=${tune.rows}`);
+const e2 = await mk({ coopWG: tune.wg, coopRows: tune.rows });
 const t0 = performance.now();
 await e2.prefillTokens(ids.slice(0, -1));
 const t1 = performance.now();

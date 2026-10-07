@@ -15,10 +15,10 @@
     "test": "deno test --allow-read tests/unit",
     "test:node": "node tests/unit/run_node_tests.mjs",
     "test:groq": "node tests/test_mapped_models.mjs",
-    "check": "deno check engine/*.js && node --check tests/*.js benchmarks/*.js",
-    "test:gpu": "bash tests/run.sh quick",
-    "test:q38": "bash tests/run.sh q38",
-    "test:all": "bash tests/run.sh all",
+    "check": "node scripts/check.mjs",
+    "test:gpu": "node scripts/test-gpu.mjs quick",
+    "test:q38": "node scripts/test-gpu.mjs q38",
+    "test:all": "node scripts/test-gpu.mjs all",
     "bench": "deno run --unstable-webgpu --allow-read --allow-env benchmarks/bench.js",
     "bench:q38": "MODEL=q38 deno run --unstable-webgpu --allow-read --allow-env benchmarks/bench.js",
     "bench:breakdown": "deno run --unstable-webgpu --allow-read --allow-env benchmarks/bench_breakdown.js",
@@ -37,7 +37,7 @@
   },
   "devDependencies": {
     "peer": "^1.0.2",
-    "playwright": "1.49.1"
+    "playwright": "^1.49.1"
   },
   "dependencies": {
     "jsdom": "^29.1.1",
