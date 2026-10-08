@@ -68,7 +68,7 @@ LLM ShardX runs large language models across the devices in a room, in their bro
 
 6. Open the **HOST TAB** URL printed in the terminal (normally `http://localhost:8080/room?signal=localhost:9000`). Create a room. To demonstrate two devices on one computer, open the printed **WORKER TAB** URL in another browser tab or window, then join with the room code. For a phone or another computer on the same Wi-Fi, open the printed **MOBILE / LAN PEER** URL instead. Start the model after the devices have joined.
 
-Keep the terminal running while presenting; press `q` there to stop the demo servers. If ports 8080 or 9000 are already in use, close the earlier server terminal or choose unused ports, for example:
+Keep the terminal running while presenting; press `q` there to stop the demo servers and tunnels. If `cloudflared` is installed and available on PATH, `npm run demo` creates temporary Cloudflare Quick Tunnels for both the app and signaling server and prints one public room link. Those temporary links change each time the demo starts. For a stable custom domain, configure two Cloudflare Tunnel hostnames: the app hostname routes to `http://localhost:8080`, and the signaling hostname routes to `http://localhost:9000`. Set `CLOUDFLARE_ROOM_URL`, `CLOUDFLARE_SIGNAL_HOST`, and a newly generated `CLOUDFLARE_TUNNEL_TOKEN` in the ignored `.env` file; `npm run demo` then starts the named tunnel and prints a stable room link. If the tunnel already runs as a Windows service, the token can be omitted. See `.env.example` for the variable names. Keep tunnel tokens private. If ports 8080 or 9000 are already in use, close the earlier server terminal or choose unused ports, for example:
 
 ```powershell
 npm run demo -- --port 8081 --signal-port 9001
@@ -79,6 +79,12 @@ For a phone demo, both devices must be on the same Wi-Fi and Windows Firewall ma
 **Local signaling note:** `npm run demo` starts both the web app and its signaling server. The app server alone (`npm run serve:local`) does not start room signaling.
 
 **Serve through your own Cloudflare subdomain:** create a remotely managed Cloudflare Tunnel and add a Published application route for your subdomain pointing to `http://localhost:8080`. Put its tunnel token in the ignored local `.env` file as `CLOUDFLARE_TUNNEL_TOKEN=<token>`, then run `npm run serve`. This starts the app server and Cloudflare Tunnel together; without that setting, it starts locally only. Keep the token private. The hostname is public unless you protect it with a Cloudflare Access policy.
+
+### Docker / PaaS
+
+The `Dockerfile` builds a container that starts both the web server and PeerJS signaling server. Build it with `docker build -t llm-shardx .` and run it with `docker run --rm -p 8080:8080 -p 9000:9000 llm-shardx`. Configure `GROQ_API_KEY` and `FALLBACKMODE` as PaaS environment variables when needed; do not copy `.env` or model weights into the image.
+
+The default container listens on `PORT` (default `8080`) and `SIGNAL_PORT` (default `9000`). If the PaaS only exposes one public port per service, deploy the same image twice: set `CONTAINER_SERVICE=web` for the web/API service, and `CONTAINER_SERVICE=signal` for the signaling service. Point the app and signaling hostnames at those separate services, then open the app with `?signal=<public-signal-host>:443` so PeerJS uses the hosted signaling service over secure WebSockets.
 
 **Hack on the engine** (needs [Deno](https://deno.com) 2.x and a WebGPU-capable GPU; model files go under `models/`, see [docs/models.md](docs/models.md)):
 

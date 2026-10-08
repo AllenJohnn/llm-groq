@@ -1,0 +1,14 @@
+.git
+.github
+node_modules
+.env
+.env.*
+!.env.example
+models
+engine/model
+engine/qwen
+engine/qwen17
+engine/q38
+presentation
+coverage
+npm-debug.log*
