@@ -157,6 +157,19 @@ async function measureBudgetGB(adapter, capGB) {
 
 // probe once at load; fill the contribution selector
 const metaPromise = (async () => {
+  if (LOCAL_DEMO_PRESENTATION) {
+    const ua = navigator.userAgent.includes("iPhone") ? "iPhone" :
+      navigator.userAgent.includes("Mac") ? "Mac" :
+      navigator.userAgent.includes("Android") ? "Android" : "Device";
+    const gbEl = $("join-gb");
+    if (gbEl) gbEl.closest("#join-pledge")?.setAttribute("hidden", "");
+    const capability = $("join-device-status");
+    if (capability) {
+      capability.dataset.ready = "demo";
+      capability.textContent = "Demo mode · WebGPU support check skipped.";
+    }
+    return { ua, webgpu: null, gpu: "not checked", maxBufGB: 0, contribGB: 0 };
+  }
   try {
     const m = await probeGPU();
     if (m.webgpu) {
@@ -224,10 +237,11 @@ function peerCard(id, name, meta, self) {
     </div>
     ${self ? "" : '<button class="bw-btn">test bandwidth</button>'}`;
   card.querySelector(".pname").textContent = name + (self ? " (you)" : "");
+  const gpuKnown = typeof meta.webgpu === "boolean";
   card.querySelector(".peer-gpu").textContent = meta.webgpu
-    ? `${meta.ua} · ${meta.gpu}` : `${meta.ua} · ⚠ no WebGPU`;
-  card.querySelector(".peer-gpu-badge").textContent = meta.webgpu ? "WebGPU ready" : "WebGPU unavailable";
-  card.querySelector(".peer-gpu-badge").classList.toggle("unavailable", !meta.webgpu);
+    ? `${meta.ua} · ${meta.gpu}` : gpuKnown ? `${meta.ua} · ⚠ no WebGPU` : `${meta.ua} · demo mode`;
+  card.querySelector(".peer-gpu-badge").textContent = meta.webgpu ? "WebGPU ready" : gpuKnown ? "WebGPU unavailable" : "not checked";
+  card.querySelector(".peer-gpu-badge").classList.toggle("unavailable", meta.webgpu === false);
   const budget = meta.budgetGB || meta.maxBufGB;
   card.querySelector(".buf").textContent = meta.contribGB ? `${meta.contribGB} GB pledged` : (budget ? `${budget} GB available` : "Not reported");
   $("peers").appendChild(card);
@@ -496,7 +510,8 @@ function enterRoom() {
       splitBtn.style.display = "block";
       splitBtn.onclick = () => {
         const signalParam = SIGNAL ? `&signal=${encodeURIComponent(SIGNAL)}` : "";
-        const url = `${location.origin}${location.pathname}?code=${roomCode}${signalParam}`;
+        const demoParam = LOCAL_DEMO_PRESENTATION ? "&local-demo=1" : "";
+        const url = `${location.origin}${location.pathname}?code=${roomCode}${signalParam}${demoParam}`;
         window.open(url, "_blank");
       };
     }

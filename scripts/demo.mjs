@@ -97,9 +97,9 @@ async function startServers() {
   // Wait 1.5s for servers to settle
   await new Promise((r) => setTimeout(r, 1500));
 
-  const hostUrl = `http://localhost:${HTTP_PORT}/room?signal=localhost:${SIGNAL_PORT}`;
-  const workerLocalUrl = `http://localhost:${HTTP_PORT}/room?signal=localhost:${SIGNAL_PORT}`;
-  const workerLanUrl = `http://${localIp}:${HTTP_PORT}/room?signal=${localIp}:${SIGNAL_PORT}`;
+  const hostUrl = `http://localhost:${HTTP_PORT}/room?signal=localhost:${SIGNAL_PORT}&local-demo=1`;
+  const workerLocalUrl = `http://localhost:${HTTP_PORT}/room?signal=localhost:${SIGNAL_PORT}&local-demo=1`;
+  const workerLanUrl = `http://${localIp}:${HTTP_PORT}/room?signal=${localIp}:${SIGNAL_PORT}&local-demo=1`;
 
   const publicRoomUrl = await startPublicAccess();
 
@@ -178,7 +178,7 @@ async function startPublicAccess() {
   if (roomUrl && signalHost) {
     if (token) startNamedTunnel(token);
     else console.log("[Demo] Using fixed Cloudflare hostnames; assuming the named tunnel service is already running.");
-    return `${roomUrl}/room?signal=${signalHost}:443`;
+    return `${roomUrl}/room?signal=${signalHost}:443&local-demo=1`;
   }
 
   if (token) {
@@ -235,7 +235,7 @@ async function startPublicAccess() {
       finish(null);
     }, 30000);
   }))).then(([web, signal]) => web && signal
-    ? `${web}/room?signal=${new URL(signal).host}`
+    ? `${web}/room?signal=${new URL(signal).host}&local-demo=1`
     : null);
 }
 

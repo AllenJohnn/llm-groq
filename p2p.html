@@ -1659,69 +1659,9 @@ window.sliceStart = function(create) {
       return;
     }
 
-    // 2. Test fetching all imported submodules
-    const subs = [
-      ['/engine/wgsl/base.js', 'engine/wgsl/base.js'],
-      ['/engine/wgsl/gemm.js', 'engine/wgsl/gemm.js'],
-      ['/engine/wgsl/coop.js', 'engine/wgsl/coop.js'],
-      ['/engine/wgsl/qwen35.js', 'engine/wgsl/qwen35.js'],
-      ['/engine/wgsl/prune.js', 'engine/wgsl/prune.js'],
-      ['/engine/wgsl/gemm_sgm.js', 'engine/wgsl/gemm_sgm.js'],
-      ['/engine/wgsl/gemm_wide.js', 'engine/wgsl/gemm_wide.js'],
-      ['/engine/wgsl/layer_fuse.js', 'engine/wgsl/layer_fuse.js'],
-      ['/engine/wgsl/moe.js', 'engine/wgsl/moe.js'],
-      ['/engine/wgsl/attn_tile.js', 'engine/wgsl/attn_tile.js'],
-      ['/engine/wgsl/attn_dec.js', 'engine/wgsl/attn_dec.js'],
-      ['/engine/wgsl/moe_group.js', 'engine/wgsl/moe_group.js'],
-      ['/engine/compile.js', 'engine/compile.js'],
-      ['/engine/topk.js', 'engine/topk.js'],
-      ['/engine/quantize.js', 'engine/quantize.js'],
-      ['/engine/sampling.js', 'engine/sampling.js'],
-      ['/engine/tokenizer.js', 'engine/tokenizer.js'],
-      ['/engine/autotune.js', 'engine/autotune.js'],
-      ['/engine/safetensors.js', 'engine/safetensors.js'],
-      ['/engine/gguf.js', 'engine/gguf.js'],
-      ['/engine/dense.js', 'engine/dense.js'],
-      ['/engine/selftest.js', 'engine/selftest.js'],
-      ['/engine/engine.js', 'engine/engine.js'],
-      ['/engine/qwen35.js', 'engine/qwen35.js'],
-      ['/room/wire.js', 'room/wire.js'],
-      ['/vendor/marked.esm.js', 'vendor/marked.esm.js'],
-      ['/room/markdown.js', 'room/markdown.js'],
-      ['/room/sampling.js', 'room/sampling.js'],
-      ['/room/visibility.js', 'room/visibility.js'],
-      ['/room/models.js', 'room/models.js'],
-      ['/room/transport.js', 'room/transport.js'],
-      ['/room/groq.js', 'room/groq.js'],
-      ['/room/groq-client.js', 'room/groq-client.js'],
-      ['/room/perf-sidebar.js', 'room/perf-sidebar.js'],
-      ['/room/build-mode.js', 'room/build-mode.js']
-    ];
-
-    // 2. Test fetching all imported submodules in parallel
-    try {
-      await Promise.all(subs.map(async ([url, name]) => {
-        const subResp = await fetch(url);
-        if (!subResp.ok) {
-          throw new Error(`Missing file: ${name} returned HTTP ${subResp.status}`);
-        }
-      }));
-    } catch (e) {
-      notify(`<b>Network error:</b> ${e.message}`);
-      return;
-    }
-
-    // 3. Test importing submodules individually to isolate syntax/eval issues
-    try {
-      await Promise.all(subs.map(([url, name]) => import(url).catch(e => {
-        throw new Error(`Submodule error in ${name}: ${e.message || e}`);
-      })));
-    } catch (e) {
-      notify(`<b>${e.message}</b>`);
-      return;
-    }
-
-    // 4. Finally import room.js
+    // Load the room entry point once and let the browser resolve its actual
+    // dependency graph. Pre-fetching and importing every module here caused a
+    // burst of redundant production requests before startup.
     try {
       await import(roomUrl);
       if (s && (s.textContent.includes('Loading') || s.textContent.includes('HTTP'))) {
