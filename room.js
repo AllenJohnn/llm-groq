@@ -106,12 +106,12 @@ const ua = navigator.userAgent.includes("iPhone") ? "iPhone" :
 const phone = ua === "iPhone" || ua === "Android";
 const gbEl = $("join-gb");
 if (LOCAL_DEMO_PRESENTATION) gbEl?.closest("#join-pledge")?.setAttribute("hidden", "");
-const GPU_MEMORY_CACHE_KEY = "webslice-gpu-memory-v2";
+const GPU_MEMORY_CACHE_KEY = "webslice-gpu-memory-v3";
 
 function readGpuMemoryCache() {
   try {
     const cached = JSON.parse(localStorage.getItem(GPU_MEMORY_CACHE_KEY) || "null");
-    if (cached?.version === 2 && cached.uaString === navigator.userAgent &&
+    if (cached?.version === 3 && cached.uaString === navigator.userAgent &&
         Number.isFinite(cached.maxBufGB) && Number.isFinite(cached.contribGB)) {
       return { ua, phone, maxBufGB: cached.maxBufGB, contribGB: cached.contribGB };
     }
@@ -122,7 +122,7 @@ function readGpuMemoryCache() {
 function saveGpuMemoryCache(maxBufGB, contribGB) {
   try {
     localStorage.setItem(GPU_MEMORY_CACHE_KEY, JSON.stringify({
-      version: 2, uaString: navigator.userAgent, maxBufGB, contribGB, savedAt: Date.now(),
+      version: 3, uaString: navigator.userAgent, maxBufGB, contribGB, savedAt: Date.now(),
     }));
   } catch {}
 }
@@ -153,10 +153,7 @@ const metaPromise = cachedGpuMemory
   : (async () => {
       let maxBufGB = 0;
       try {
-        const adapter = await Promise.race([
-          navigator.gpu?.requestAdapter() ?? Promise.resolve(null),
-          new Promise((resolve) => setTimeout(() => resolve(null), 2500)),
-        ]);
+        const adapter = await (navigator.gpu?.requestAdapter() ?? Promise.resolve(null));
         if (adapter) maxBufGB = +(adapter.limits.maxBufferSize / 2 ** 30).toFixed(1);
       } catch {}
       const systemGB = navigator.deviceMemory || 0;
