@@ -106,12 +106,12 @@ const ua = navigator.userAgent.includes("iPhone") ? "iPhone" :
 const phone = ua === "iPhone" || ua === "Android";
 const gbEl = $("join-gb");
 if (LOCAL_DEMO_PRESENTATION) gbEl?.closest("#join-pledge")?.setAttribute("hidden", "");
-const GPU_MEMORY_CACHE_KEY = "webslice-gpu-memory-v1";
+const GPU_MEMORY_CACHE_KEY = "webslice-gpu-memory-v2";
 
 function readGpuMemoryCache() {
   try {
     const cached = JSON.parse(localStorage.getItem(GPU_MEMORY_CACHE_KEY) || "null");
-    if (cached?.version === 1 && cached.uaString === navigator.userAgent &&
+    if (cached?.version === 2 && cached.uaString === navigator.userAgent &&
         Number.isFinite(cached.maxBufGB) && Number.isFinite(cached.contribGB)) {
       return { ua, phone, maxBufGB: cached.maxBufGB, contribGB: cached.contribGB };
     }
@@ -122,7 +122,7 @@ function readGpuMemoryCache() {
 function saveGpuMemoryCache(maxBufGB, contribGB) {
   try {
     localStorage.setItem(GPU_MEMORY_CACHE_KEY, JSON.stringify({
-      version: 1, uaString: navigator.userAgent, maxBufGB, contribGB, savedAt: Date.now(),
+      version: 2, uaString: navigator.userAgent, maxBufGB, contribGB, savedAt: Date.now(),
     }));
   } catch {}
 }
@@ -135,9 +135,19 @@ function setMemoryPledgeInput(contribGB) {
   gbEl.min = phone ? "0.5" : "1";
   gbEl.step = phone ? "0.5" : "1";
   gbEl.value = String(contribGB);
+  $("join-memory-label")?.replaceChildren("GB memory");
 }
 
 const cachedGpuMemory = readGpuMemoryCache();
+if (!cachedGpuMemory && !LOCAL_DEMO_PRESENTATION) {
+  if (gbEl) {
+    gbEl.value = "";
+    gbEl.disabled = true;
+  }
+  $("gb-minus").disabled = true;
+  $("gb-plus").disabled = true;
+  $("join-memory-label")?.replaceChildren("calculating…");
+}
 const metaPromise = cachedGpuMemory
   ? Promise.resolve(cachedGpuMemory)
   : (async () => {
@@ -149,9 +159,14 @@ const metaPromise = cachedGpuMemory
         ]);
         if (adapter) maxBufGB = +(adapter.limits.maxBufferSize / 2 ** 30).toFixed(1);
       } catch {}
-      const contribGB = phone ? 0.5 : maxBufGB
-        ? Math.max(0.2, Math.min(64, Math.round(maxBufGB * 5) / 10))
-        : 1;
+      const systemGB = navigator.deviceMemory || 0;
+      let recommendedGB = maxBufGB ? maxBufGB * 0.5 : 1;
+      if (systemGB >= 64) recommendedGB = 48;
+      else if (systemGB >= 32) recommendedGB = 24;
+      else if (systemGB >= 16) recommendedGB = 12;
+      else if (systemGB >= 8) recommendedGB = 6;
+      const contribGB = phone ? 0.5
+        : Math.max(0.2, Math.min(64, Math.round(recommendedGB * 10) / 10));
       saveGpuMemoryCache(maxBufGB, contribGB);
       setMemoryPledgeInput(contribGB);
       return { ua, phone, maxBufGB, contribGB };
