@@ -63,8 +63,15 @@ window.sliceStart = function(create) {
   if (window.__roomStart) {
     window.__roomStart(create);
   } else {
+    if (window.__roomStartPending !== null && window.__roomStartPending !== undefined) return;
+    if (!create && !document.getElementById('code-input').value.trim()) {
+      var emptyCodeStatus = document.getElementById('join-status');
+      if (emptyCodeStatus) emptyCodeStatus.textContent = 'enter a room code';
+      return;
+    }
+    window.__roomStartPending = create;
     var s = document.getElementById('join-status');
-    if (s) s.textContent = 'Loading LLM ShardX engine… please click again in a moment';
+    if (s) s.textContent = 'Loading LLM ShardX engine… your room will start automatically';
   }
 };
 
@@ -1665,6 +1672,7 @@ window.sliceStart = function(create) {
   async function initSlice() {
     const s = document.getElementById('join-status');
     const notify = (msg, isErr = true) => {
+      window.__roomStartPending = null;
       if (s) {
         s.style.color = isErr ? 'var(--err, #d1242f)' : 'var(--warn, #b58500)';
         s.innerHTML = msg;
@@ -1700,6 +1708,11 @@ window.sliceStart = function(create) {
         s.textContent = '';
       }
       console.log('LLM ShardX room module loaded and initialized successfully');
+      const pendingStart = window.__roomStartPending;
+      window.__roomStartPending = null;
+      if (pendingStart !== null && pendingStart !== undefined) {
+        window.__roomStart(pendingStart);
+      }
     } catch (e) {
       notify(`<b>Error in room.js:</b> ${e.message || e}`);
     }
