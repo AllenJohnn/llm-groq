@@ -106,25 +106,27 @@ const ua = navigator.userAgent.includes("iPhone") ? "iPhone" :
 const phone = ua === "iPhone" || ua === "Android";
 const gbEl = $("join-gb");
 if (LOCAL_DEMO_PRESENTATION) gbEl?.closest("#join-pledge")?.setAttribute("hidden", "");
-const GPU_MEMORY_CACHE_KEY = "webslice-gpu-memory-v3";
+const GPU_MEMORY_CACHE_KEY = "webslice-gpu-memory-v4";
 
 function readGpuMemoryCache() {
-  try {
-    const cached = JSON.parse(localStorage.getItem(GPU_MEMORY_CACHE_KEY) || "null");
-    if (cached?.version === 3 && cached.uaString === navigator.userAgent &&
-        Number.isFinite(cached.maxBufGB) && Number.isFinite(cached.contribGB)) {
-      return { ua, phone, maxBufGB: cached.maxBufGB, contribGB: cached.contribGB };
-    }
-  } catch {}
+  for (const storageName of ["localStorage", "sessionStorage"]) {
+    try {
+      const cached = JSON.parse(window[storageName].getItem(GPU_MEMORY_CACHE_KEY) || "null");
+      if (cached?.version === 4 && Number.isFinite(cached.maxBufGB) && Number.isFinite(cached.contribGB)) {
+        return { ua, phone, maxBufGB: cached.maxBufGB, contribGB: cached.contribGB };
+      }
+    } catch {}
+  }
   return null;
 }
 
 function saveGpuMemoryCache(maxBufGB, contribGB) {
-  try {
-    localStorage.setItem(GPU_MEMORY_CACHE_KEY, JSON.stringify({
-      version: 3, uaString: navigator.userAgent, maxBufGB, contribGB, savedAt: Date.now(),
-    }));
-  } catch {}
+  const value = JSON.stringify({
+    version: 4, uaString: navigator.userAgent, maxBufGB, contribGB, savedAt: Date.now(),
+  });
+  for (const storageName of ["localStorage", "sessionStorage"]) {
+    try { window[storageName].setItem(GPU_MEMORY_CACHE_KEY, value); } catch {}
+  }
 }
 
 function setMemoryPledgeInput(contribGB) {
@@ -136,6 +138,23 @@ function setMemoryPledgeInput(contribGB) {
   gbEl.step = phone ? "0.5" : "1";
   gbEl.value = String(contribGB);
   $("join-memory-label")?.replaceChildren("GB memory");
+}
+
+function recommendedPledgeGB(maxBufGB) {
+  const systemGB = navigator.deviceMemory || 0;
+  let recommendedGB = maxBufGB ? maxBufGB * 0.5 : 1;
+  if (systemGB >= 64) recommendedGB = 48;
+  else if (systemGB >= 32) recommendedGB = 24;
+  else if (systemGB >= 16) recommendedGB = 12;
+  else if (systemGB >= 8) recommendedGB = 6;
+  return phone ? 0.5 : Math.max(0.2, Math.min(64, Math.round(recommendedGB * 10) / 10));
+}
+
+function createMemoryEstimate(maxBufGB) {
+  const contribGB = recommendedPledgeGB(maxBufGB);
+  saveGpuMemoryCache(maxBufGB, contribGB);
+  setMemoryPledgeInput(contribGB);
+  return { ua, phone, maxBufGB, contribGB };
 }
 
 const cachedGpuMemory = readGpuMemoryCache();
@@ -150,24 +169,16 @@ if (!cachedGpuMemory && !LOCAL_DEMO_PRESENTATION) {
 }
 const metaPromise = cachedGpuMemory
   ? Promise.resolve(cachedGpuMemory)
-  : (async () => {
-      let maxBufGB = 0;
-      try {
-        const adapter = await (navigator.gpu?.requestAdapter() ?? Promise.resolve(null));
-        if (adapter) maxBufGB = +(adapter.limits.maxBufferSize / 2 ** 30).toFixed(1);
-      } catch {}
-      const systemGB = navigator.deviceMemory || 0;
-      let recommendedGB = maxBufGB ? maxBufGB * 0.5 : 1;
-      if (systemGB >= 64) recommendedGB = 48;
-      else if (systemGB >= 32) recommendedGB = 24;
-      else if (systemGB >= 16) recommendedGB = 12;
-      else if (systemGB >= 8) recommendedGB = 6;
-      const contribGB = phone ? 0.5
-        : Math.max(0.2, Math.min(64, Math.round(recommendedGB * 10) / 10));
-      saveGpuMemoryCache(maxBufGB, contribGB);
-      setMemoryPledgeInput(contribGB);
-      return { ua, phone, maxBufGB, contribGB };
-    })();
+  : LOCAL_DEMO_PRESENTATION
+    ? Promise.resolve(createMemoryEstimate(0))
+    : (async () => {
+        let maxBufGB = 0;
+        try {
+          const adapter = await (navigator.gpu?.requestAdapter() ?? Promise.resolve(null));
+          if (adapter) maxBufGB = +(adapter.limits.maxBufferSize / 2 ** 30).toFixed(1);
+        } catch {}
+        return createMemoryEstimate(maxBufGB);
+      })();
 if (cachedGpuMemory) setMemoryPledgeInput(cachedGpuMemory.contribGB);
 
 // --- UI helpers ---
