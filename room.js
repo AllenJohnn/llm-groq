@@ -105,7 +105,6 @@ const ua = navigator.userAgent.includes("iPhone") ? "iPhone" :
   navigator.userAgent.includes("Android") ? "Android" : "Device";
 const phone = ua === "iPhone" || ua === "Android";
 const gbEl = $("join-gb");
-if (LOCAL_DEMO_PRESENTATION) gbEl?.closest("#join-pledge")?.setAttribute("hidden", "");
 const GPU_MEMORY_CACHE_KEY = "webslice-gpu-memory-v4";
 
 function readGpuMemoryCache() {
@@ -136,7 +135,7 @@ function setMemoryPledgeInput(contribGB) {
   $("gb-plus").disabled = false;
   gbEl.min = phone ? "0.5" : "1";
   gbEl.step = phone ? "0.5" : "1";
-  gbEl.value = String(contribGB);
+  if (gbEl.dataset.userEdited !== "true") gbEl.value = String(contribGB);
   $("join-memory-label")?.replaceChildren("GB memory");
 }
 
@@ -733,7 +732,7 @@ async function bwTest(id) {
 // --- ping loop ---
 setInterval(() => broadcastAll({ t: "ping", ts: performance.now() }), 2500);
 
-const stepGB = (d) => { const i = $("join-gb"); const lo = parseFloat(i.min) || 1; const st = parseFloat(i.step) || 1; i.value = Math.min(64, Math.max(lo, (parseFloat(i.value) || lo) + d * st)); };
+const stepGB = (d) => { const i = $("join-gb"); const lo = parseFloat(i.min) || 1; const st = parseFloat(i.step) || 1; i.value = Math.min(64, Math.max(lo, (parseFloat(i.value) || lo) + d * st)); i.dataset.userEdited = "true"; };
 window.stepGB = stepGB;
 $("gb-minus").addEventListener("click", () => stepGB(-1));
 $("gb-plus").addEventListener("click", () => stepGB(1));

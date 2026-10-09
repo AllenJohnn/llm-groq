@@ -56,6 +56,7 @@ window.stepGB = function(d) {
   var st = parseFloat(i.step) || 1;
   var cur = parseFloat(i.value) || lo;
   i.value = Math.min(64, Math.max(lo, cur + d * st));
+  i.dataset.userEdited = 'true';
 };
 
 window.sliceStart = function(create) {
@@ -67,51 +68,6 @@ window.sliceStart = function(create) {
   }
 };
 
-// Apply the demo memory recommendation before the room module's dependency
-// graph finishes loading. The HTML form is visible before that graph is ready.
-(function bootstrapDemoMemory() {
-  var params = new URLSearchParams(location.search);
-  var isLocalDemo = params.get('local-demo') === '1';
-  if (isLocalDemo) document.documentElement.classList.add('local-demo-presentation');
-
-  document.addEventListener('DOMContentLoaded', function() {
-    var input = document.getElementById('join-gb');
-    if (!input) return;
-
-    var cacheKey = 'webslice-gpu-memory-v4';
-    var cached = null;
-    ['localStorage', 'sessionStorage'].some(function(storageName) {
-      try {
-        var value = JSON.parse(window[storageName].getItem(cacheKey) || 'null');
-        if (value && value.version === 4 && Number.isFinite(value.maxBufGB) && Number.isFinite(value.contribGB)) {
-          cached = value;
-          return true;
-        }
-      } catch (_) {}
-      return false;
-    });
-
-    var ua = /iPhone/i.test(navigator.userAgent) ? 'iPhone' :
-      /Mac/i.test(navigator.userAgent) ? 'Mac' :
-      /Android/i.test(navigator.userAgent) ? 'Android' : 'Device';
-    var phone = ua === 'iPhone' || ua === 'Android';
-    var estimate = cached;
-    if (!estimate && isLocalDemo) {
-      var systemGB = navigator.deviceMemory || 0;
-      var recommendedGB = 1;
-      if (systemGB >= 64) recommendedGB = 48;
-      else if (systemGB >= 32) recommendedGB = 24;
-      else if (systemGB >= 16) recommendedGB = 12;
-      else if (systemGB >= 8) recommendedGB = 6;
-      estimate = { version: 4, maxBufGB: 0, contribGB: phone ? 0.5 : recommendedGB };
-      var serialized = JSON.stringify(Object.assign({}, estimate, { uaString: navigator.userAgent, savedAt: Date.now() }));
-      ['localStorage', 'sessionStorage'].forEach(function(storageName) {
-        try { window[storageName].setItem(cacheKey, serialized); } catch (_) {}
-      });
-    }
-    if (estimate) input.value = String(estimate.contribGB);
-  }, { once: true });
-})();
 </script>
 <style>
     :root {
@@ -1323,7 +1279,6 @@ window.sliceStart = function(create) {
     #perf-sidebar .perf-stat-item { min-width: 0; padding: 12px; }
     #perf-sidebar .perf-stat-v { overflow-wrap: anywhere; }
   }
-  .local-demo-presentation #join-pledge { display: none !important; }
   @media (max-width: 1100px) and (min-width: 861px) {
     #room-screen[style*="display: flex"] { grid-template-columns: 250px minmax(0, 1.1fr) minmax(360px, 1fr); }
     #room-screen:has(#perf-sidebar.collapsed)[style*="display: flex"] { grid-template-columns: 250px minmax(0, 1fr); }
@@ -1522,6 +1477,45 @@ window.sliceStart = function(create) {
       <button class="step" id="gb-plus" type="button" aria-label="Use more memory" onclick="window.stepGB && window.stepGB(1)">+</button>
       <span id="join-memory-label">GB memory</span>
     </div>
+
+    <script>
+      // Read the saved estimate as soon as the control exists, before the room
+      // module and its dependency graph finish loading. Keep the field editable.
+      (function bootstrapMemoryEstimate() {
+        var input = document.getElementById('join-gb');
+        if (!input) return;
+        input.addEventListener('input', function() { input.dataset.userEdited = 'true'; });
+
+        var cacheKey = 'webslice-gpu-memory-v4';
+        var cached = null;
+        ['localStorage', 'sessionStorage'].some(function(storageName) {
+          try {
+            var value = JSON.parse(window[storageName].getItem(cacheKey) || 'null');
+            if (value && value.version === 4 && Number.isFinite(value.maxBufGB) && Number.isFinite(value.contribGB)) {
+              cached = value;
+              return true;
+            }
+          } catch (_) {}
+          return false;
+        });
+
+        var ua = /iPhone/i.test(navigator.userAgent) ? 'iPhone' :
+          /Mac/i.test(navigator.userAgent) ? 'Mac' :
+          /Android/i.test(navigator.userAgent) ? 'Android' : 'Device';
+        var isDemo = new URLSearchParams(location.search).get('local-demo') === '1';
+        var estimate = cached;
+        if (!estimate && isDemo) {
+          var systemGB = navigator.deviceMemory || 0;
+          var recommendedGB = systemGB >= 64 ? 48 : systemGB >= 32 ? 24 : systemGB >= 16 ? 12 : systemGB >= 8 ? 6 : 1;
+          estimate = { version: 4, maxBufGB: 0, contribGB: /^(iPhone|Android)$/.test(ua) ? 0.5 : recommendedGB };
+          var serialized = JSON.stringify(Object.assign({}, estimate, { uaString: navigator.userAgent, savedAt: Date.now() }));
+          ['localStorage', 'sessionStorage'].forEach(function(storageName) {
+            try { window[storageName].setItem(cacheKey, serialized); } catch (_) {}
+          });
+        }
+        if (estimate) input.value = String(estimate.contribGB);
+      })();
+    </script>
 
 
     <details id="join-hint" class="join-network-help">
