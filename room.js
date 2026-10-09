@@ -128,7 +128,7 @@ function saveGpuMemoryCache(maxBufGB, contribGB) {
 }
 
 function setMemoryPledgeInput(contribGB) {
-  if (!gbEl || LOCAL_DEMO_PRESENTATION) return;
+  if (!gbEl) return;
   gbEl.disabled = false;
   $("gb-minus").disabled = false;
   $("gb-plus").disabled = false;
@@ -137,11 +137,10 @@ function setMemoryPledgeInput(contribGB) {
   gbEl.value = String(contribGB);
 }
 
-const cachedGpuMemory = LOCAL_DEMO_PRESENTATION ? null : readGpuMemoryCache();
+const cachedGpuMemory = readGpuMemoryCache();
 const metaPromise = cachedGpuMemory
   ? Promise.resolve(cachedGpuMemory)
   : (async () => {
-      if (LOCAL_DEMO_PRESENTATION) return { ua, phone, contribGB: 0 };
       let maxBufGB = 0;
       try {
         const adapter = await Promise.race([
