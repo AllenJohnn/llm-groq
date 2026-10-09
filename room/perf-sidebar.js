@@ -1532,7 +1532,7 @@ export class PerfSidebar {
     const listEl = document.getElementById("perf-devices-list");
     if (listEl) {
       listEl.innerHTML = this.devices.map(d => {
-        const gpuMeta = d.meta?.gpu || (d.meta?.webgpu ? "WebGPU" : "Mesh Node");
+        const deviceMeta = d.meta?.ua || "Device";
         const latMeta = d.rtt !== null ? `RTT: ${d.rtt}ms` : "Local Host";
 
         const workerText = d.workerRole === "Worker" ? "Model shard" : (d.workerRole === "Host" ? "Host · output sampler" : (d.stage || "Idle"));
@@ -1549,7 +1549,7 @@ export class PerfSidebar {
               </div>
             </div>
             <div class="perf-dev-foot">
-              <span>${escapeHtml(gpuMeta)}</span>
+              <span>${escapeHtml(deviceMeta)}</span>
               <span>${escapeHtml(latMeta)}</span>
             </div>
           </div>

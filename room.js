@@ -98,118 +98,20 @@ let ai = {
   busy: false,
 };
 
-// --- GPU capability probe (runs at page load so the join screen can offer
-// contribution presets) ---
-async function probeGPU() {
-  const meta = { ua: navigator.userAgent.includes("iPhone") ? "iPhone" :
-                     navigator.userAgent.includes("Mac") ? "Mac" :
-                     navigator.userAgent.includes("Android") ? "Android" : "Device",
-                 webgpu: false, gpu: "no WebGPU", maxBufGB: 0 };
-  if (navigator.gpu) {
-    try {
-      const a = await Promise.race([
-        navigator.gpu.requestAdapter(),
-        new Promise((r) => setTimeout(() => r(null), 2500))
-      ]);
-      if (a) {
-        meta.webgpu = true;
-        const info = a.info || {};
-        meta.gpu = [...new Set([info.vendor, info.architecture || info.device].filter(Boolean))].join(" ") || "GPU";
-        meta.maxBufGB = +(a.limits.maxBufferSize / 2 ** 30).toFixed(1);
-        // browsers hide real GPU memory (fingerprinting). Default to the
-        // conservative per-buffer limit; the user can opt in to a real
-        // measurement (see measureBudgetGB) which replaces this estimate.
-        meta.budgetGB = meta.maxBufGB;
-        meta.canMeasure = meta.ua !== "iPhone" && meta.ua !== "Android";
-      }
-    } catch {}
-  }
-  return meta;
+// Collect only a device label and a default memory pledge. GPU availability is
+// handled when local inference starts, rather than probing on every page load.
+const ua = navigator.userAgent.includes("iPhone") ? "iPhone" :
+  navigator.userAgent.includes("Mac") ? "Mac" :
+  navigator.userAgent.includes("Android") ? "Android" : "Device";
+const phone = ua === "iPhone" || ua === "Android";
+const gbEl = $("join-gb");
+if (LOCAL_DEMO_PRESENTATION) gbEl?.closest("#join-pledge")?.setAttribute("hidden", "");
+if (phone && gbEl) {
+  gbEl.min = "0.5";
+  gbEl.step = "0.5";
+  gbEl.value = "0.5";
 }
-
-async function measureBudgetGB(adapter, capGB) {
-  try {
-    const dev = await adapter.requestDevice();
-    let lost = false;
-    dev.lost.then(() => { lost = true; });
-    const chunk = 512 * 2 ** 20;
-    const bufs = [];
-    let total = 0;
-    while (total < capGB * 2 ** 30 && !lost) {
-      dev.pushErrorScope("out-of-memory");
-      const b = dev.createBuffer({ size: chunk, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
-      try { // commit the pages for real, or lazy allocation lies to us
-        const enc = dev.createCommandEncoder();
-        enc.clearBuffer(b);
-        dev.queue.submit([enc.finish()]);
-        await dev.queue.onSubmittedWorkDone();
-      } catch { lost = true; }
-      const err = await dev.popErrorScope().catch(() => true);
-      if (err || lost) { try { b.destroy(); } catch {} break; }
-      bufs.push(b);
-      total += chunk;
-    }
-    for (const b of bufs) { try { b.destroy(); } catch {} }
-    try { dev.destroy(); } catch {}
-    return +(total / 2 ** 30).toFixed(1);
-  } catch { return 0; }
-}
-
-// probe once at load; fill the contribution selector
-const metaPromise = (async () => {
-  if (LOCAL_DEMO_PRESENTATION) {
-    const ua = navigator.userAgent.includes("iPhone") ? "iPhone" :
-      navigator.userAgent.includes("Mac") ? "Mac" :
-      navigator.userAgent.includes("Android") ? "Android" : "Device";
-    const gbEl = $("join-gb");
-    if (gbEl) gbEl.closest("#join-pledge")?.setAttribute("hidden", "");
-    const capability = $("join-device-status");
-    if (capability) {
-      capability.dataset.ready = "demo";
-      capability.textContent = "Demo mode · WebGPU support check skipped.";
-    }
-    return { ua, webgpu: null, gpu: "not checked", maxBufGB: 0, contribGB: 0 };
-  }
-  try {
-    const m = await probeGPU();
-    if (m.webgpu) {
-      const sysMem = navigator.deviceMemory || 0;
-      let rec = m.budgetGB ? m.budgetGB * 0.5 : 1;
-      if (sysMem >= 64) rec = 48;
-      else if (sysMem >= 32) rec = 24;
-      else if (sysMem >= 16) rec = 12;
-      else if (sysMem >= 8) rec = 6;
-      m.contribGB = Math.max(0.2, Math.round(rec * 10) / 10);
-    } else {
-      m.contribGB = 0;
-    }
-    m.phone = m.ua === "iPhone" || m.ua === "Android";
-    const gbEl = $("join-gb");
-    if (gbEl) {
-      if (!m.webgpu) {
-        gbEl.value = "0";
-        gbEl.disabled = true;
-        $("gb-minus").disabled = true;
-        $("gb-plus").disabled = true;
-      } else {
-        $("gb-minus").disabled = false;
-        $("gb-plus").disabled = false;
-        if (m.phone) { m.contribGB = 0.5; gbEl.min = "0.5"; gbEl.step = "0.5"; gbEl.value = "0.5"; }
-        else if (m.contribGB) { m.contribGB = Math.max(1, m.contribGB); gbEl.value = m.contribGB; }
-      }
-    }
-    const capability = $("join-device-status");
-    if (capability) {
-      capability.dataset.ready = String(!!m.webgpu);
-      capability.textContent = m.webgpu
-        ? `WebGPU ready · set to contribute ${m.contribGB} GB.`
-        : "WebGPU is not available in this browser, so this device cannot contribute model memory.";
-    }
-    return m;
-  } catch (e) {
-    return { ua: "Device", webgpu: false, gpu: "no WebGPU", maxBufGB: 0, contribGB: 0 };
-  }
-})();
+const metaPromise = Promise.resolve({ ua, phone, contribGB: phone ? 0.5 : 1 });
 
 // --- UI helpers ---
 function log(from, text) {
@@ -229,19 +131,13 @@ function peerCard(id, name, meta, self) {
       <div class="peer-name"><span class="dot ${self ? "ok" : "warn"}"></span><span class="pname"></span></div>
       <span class="device-state ${self ? "connected" : "joining"}">${self ? "This device" : "Connecting"}</span>
     </div>
-    <div class="peer-gpu"></div>
-    <div class="peer-capabilities"><span class="peer-gpu-badge"></span><span class="peer-memory"><span class="memory-label">Memory</span> <b class="buf">—</b></span></div>
+    <div class="peer-capabilities"><span class="peer-memory"><span class="memory-label">Memory</span> <b class="buf">—</b></span></div>
     <div class="peer-stats">
       <span>rtt <b class="rtt">—</b></span>
       <span>bw <b class="bw">—</b></span>
     </div>
     ${self ? "" : '<button class="bw-btn">test bandwidth</button>'}`;
   card.querySelector(".pname").textContent = name + (self ? " (you)" : "");
-  const gpuKnown = typeof meta.webgpu === "boolean";
-  card.querySelector(".peer-gpu").textContent = meta.webgpu
-    ? `${meta.ua} · ${meta.gpu}` : gpuKnown ? `${meta.ua} · ⚠ no WebGPU` : `${meta.ua} · demo mode`;
-  card.querySelector(".peer-gpu-badge").textContent = meta.webgpu ? "WebGPU ready" : gpuKnown ? "WebGPU unavailable" : "not checked";
-  card.querySelector(".peer-gpu-badge").classList.toggle("unavailable", meta.webgpu === false);
   const budget = meta.budgetGB || meta.maxBufGB;
   card.querySelector(".buf").textContent = meta.contribGB ? `${meta.contribGB} GB pledged` : (budget ? `${budget} GB available` : "Not reported");
   $("peers").appendChild(card);
@@ -286,7 +182,7 @@ function updateTopbarPeers() {
     const isSelf = p.self;
     const dotClass = isSelf ? "ok" : (p.rtt !== null ? "ok" : "warn");
     const budget = p.meta.contribGB ? p.meta.contribGB + " GB" : (p.meta.budgetGB || p.meta.maxBufGB ? (p.meta.budgetGB || p.meta.maxBufGB) + " GB" : "");
-    const metaTag = budget ? budget : (p.meta.webgpu ? "GPU" : "no GPU");
+    const metaTag = budget || "";
 
     let progHtml = "";
     if (isDownloading) {
@@ -298,7 +194,6 @@ function updateTopbarPeers() {
     const titleInfo = [
       p.name + (isSelf ? " (you)" : ""),
       p.meta.ua || "",
-      p.meta.gpu || (p.meta.webgpu ? "WebGPU" : "No WebGPU"),
       budget ? "Gives " + budget : "",
       p.rtt ? `RTT: ${p.rtt}ms` : "",
       p.bw ? `BW: ${p.bw}` : ""
@@ -317,7 +212,7 @@ function updateTopbarPeers() {
       chip.style.cursor = "pointer";
       chip.title += " (click to test bandwidth)";
       chip.addEventListener("click", () => bwTest(id));
-    } else if (id === "self" && myMeta.webgpu) {
+    } else if (id === "self" && myMeta.contribGB) {
       chip.style.cursor = "pointer";
       chip.title += " (click to change GPU memory pledge)";
       chip.addEventListener("click", () => {
@@ -455,14 +350,12 @@ function updateGroqModelBadge() {
 }
 function updateCluster() {
   const all = [myMeta, ...[...members.values()].map(m => m.meta)];
-  const gpus = all.filter(m => m && m.webgpu).length;
   const countEl = $("devices-count");
   if (countEl) countEl.textContent = `${all.length} online`;
   const pledged = calculateClusterPledge(myMeta, [...members.values()].map(m => m.meta));
   updateNeed(pledged);
-  const mem = all.filter(m => m && m.webgpu).reduce((s, m) => s + (m?.budgetGB || m?.maxBufGB || 0), 0);
   $("cluster-summary").textContent =
-    `${all.length} device${all.length > 1 ? "s" : ""} · ${gpus} WebGPU · ${pledged.toFixed(1)} GB pledged`;
+    `${all.length} device${all.length > 1 ? "s" : ""} · ${pledged.toFixed(1)} GB pledged`;
   updateTopbarPeers();
 
   let hostDevId = ai?.role === "host" ? "self" : (ai?.hostId || null);
@@ -546,7 +439,7 @@ function enterRoom() {
     updateGroqModelBadge();
   }
   const selfCard = document.querySelector(".peer-card.self");
-  if (selfCard && myMeta.webgpu) {
+  if (selfCard && myMeta.contribGB) {
     const row = document.createElement("div");
     row.className = "pledge";
     row.innerHTML = `give <input type="number" min="1" max="64" step="1" value="${myMeta.contribGB}"> GB of GPU`;
@@ -793,10 +686,7 @@ async function start(create) {
     }
     $("create-btn").disabled = $("join-btn").disabled = true;
     $("join-status").textContent = "connecting to signaling…";
-    myMeta = await Promise.race([
-      metaPromise,
-      new Promise((r) => setTimeout(() => r({ ua: "Device", webgpu: false, gpu: "no WebGPU", maxBufGB: 0, contribGB: 1 }), 3000))
-    ]);
+    myMeta = await metaPromise;
     const gbIn = parseFloat($("join-gb").value);
     myMeta.contribGB = Math.max(myMeta.phone ? 0.5 : 1, gbIn > 0 ? gbIn : (myMeta.contribGB || 1));
 
@@ -1893,7 +1783,7 @@ async function aiStart(modelArg) {
     const M = MODELS[modelKey];
     ai.chain = [...conns.keys()].filter((id) => {
       const c = conns.get(id);
-      return c && c.conn?.open !== false && c.meta?.webgpu !== false;
+      return c && c.conn?.open !== false;
     }).sort();
     ai.plan = new Map();                      // name -> load message, so a reloaded device can be re-seated
     ai.chainNames = ai.chain.map((id) => conns.get(id)?.name || id);

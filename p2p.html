@@ -271,7 +271,6 @@ window.sliceStart = function(create) {
   .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--faint); flex: none; }
   .dot.ok { background: var(--accent); box-shadow: 0 0 0 3px rgba(43,78,255,0.15); }
   .dot.warn { background: var(--warn); }
-  .peer-gpu { font-family: var(--mono); font-size: 13px; color: var(--muted); margin-top: 8px; word-wrap: break-word; }
   .peer-stats { font-family: var(--mono); font-size: 13px; margin-top: 10px; display: flex; gap: 14px; flex-wrap: wrap; color: var(--muted); }
   .peer-stats b { color: var(--accent); font-weight: 600; }
   .peer-card button { margin-top: 12px; font-family: var(--mono); font-size: 13px; padding: 7px 14px; border-radius: 100px; }
@@ -841,7 +840,6 @@ window.sliceStart = function(create) {
   .side-hint { font-family: var(--mono); font-size: 13px; color: var(--muted); }
   #peers { display: flex; flex-direction: column; gap: 10px; padding: 0; overflow: visible; }
   .peer-card { padding: 12px 14px; border-radius: 14px; }
-  .peer-gpu { margin-top: 6px; font-size: 13px; }
   .peer-stats { margin-top: 8px; font-size: 13px; }
   .pledge { margin-top: 8px; font-size: 13px; }
   #ai-panel { margin: 0; padding: 14px 16px; gap: 10px; box-shadow: none; border-radius: 16px; }
@@ -1001,7 +999,6 @@ window.sliceStart = function(create) {
     #peers::-webkit-scrollbar { display: none; }
     .peer-card { min-width: 160px; padding: 10px 12px; border-radius: 14px; }
     .peer-name { font-size: 15px; }
-    .peer-gpu { display: none; }
     .peer-stats { margin-top: 6px; gap: 8px; font-size: 12px; }
     .peer-card button { display: none; }
     .pledge { margin-top: 6px; font-size: 12px; }
@@ -1080,7 +1077,7 @@ window.sliceStart = function(create) {
   .peer-card { border: 1px solid var(--border); border-radius: 14px; background: var(--white); padding: 12px; box-shadow: 0 1px 2px rgba(20,22,29,.04); }
   .peer-card:hover { transform: none; box-shadow: 0 4px 16px rgba(20,22,29,.06); }
   .peer-name { font-size: 14px; font-weight: 500; }
-  .peer-stats, .peer-gpu { font: 12px/1.4 var(--sans); color: var(--muted); }
+  .peer-stats { font: 12px/1.4 var(--sans); color: var(--muted); }
   #ai-panel { padding: 14px; gap: 9px; border: 1px solid var(--border); border-radius: 16px; background: var(--white); box-shadow: 0 1px 2px rgba(20,22,29,.04); }
   #ai-panel > .side-k { font-size: 11px; }
   #ai-model { width: 100%; min-width: 0; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-2); font: 13px var(--sans); padding: 10px 12px; }
@@ -1234,7 +1231,6 @@ window.sliceStart = function(create) {
     #side > #peers { gap: 8px; }
     .peer-card { padding: 12px 13px; border-radius: 13px; }
     .peer-name { display: flex; align-items: center; gap: 8px; }
-    .peer-gpu { line-height: 1.4; }
     .peer-stats { display: flex; flex-wrap: wrap; gap: 8px 12px; }
     #ai-panel { padding: 16px; gap: 11px; }
     #ai-panel > .side-k { min-height: 18px; }
@@ -1345,7 +1341,7 @@ window.sliceStart = function(create) {
   .peer-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .peer-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
   .peer-name .pname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .device-state, .peer-gpu-badge {
+  .device-state {
     display: inline-flex; align-items: center; gap: 5px; width: fit-content;
     padding: 3px 8px; border-radius: 999px; border: 1px solid var(--border);
     color: var(--muted); background: var(--bg-2); font: 550 10px/1.3 var(--sans); white-space: nowrap;
@@ -1353,10 +1349,7 @@ window.sliceStart = function(create) {
   .device-state.connected { color: #16794c; }
   .device-state.connected::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #28a66a; }
   .device-state.joining::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #d29321; }
-  .peer-gpu { display: block; margin-top: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .peer-capabilities { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
-  .peer-gpu-badge { color: #26734d; }
-  .peer-gpu-badge.unavailable { color: #a34c42; }
   .peer-memory { color: var(--muted); font-size: 10px; }
   .peer-memory b { color: var(--text); font-weight: 550; }
   .peer-memory .memory-label { color: var(--faint); }
@@ -1393,7 +1386,6 @@ window.sliceStart = function(create) {
     #room-screen #chatpane-center { order: 0; }
     #peers { flex-direction: row; align-items: stretch; overflow-x: auto; overflow-y: hidden; padding-bottom: 3px; }
     .peer-card { min-width: 190px; }
-    .peer-gpu { display: block; }
     .peer-card .bw-btn { display: inline-flex; }
     #ai-panel { grid-template-columns: minmax(0,1fr) auto; align-items: center; }
     #ai-panel > .side-k, #ai-model, #sidebar-fallback-card, #ai-need, #ai-status, #mode-disclosure, #ai-start, #ai-head { grid-column: 1 / -1; }
@@ -1484,7 +1476,6 @@ window.sliceStart = function(create) {
       <span id="join-memory-label">GB memory</span>
     </div>
 
-    <p id="join-device-status" class="join-device-status" role="status" aria-live="polite">Checking WebGPU support…</p>
 
     <details id="join-hint" class="join-network-help">
       <summary>Using a local demo server?</summary>

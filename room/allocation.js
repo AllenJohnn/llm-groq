@@ -2,14 +2,14 @@
 // Handles capacity calculations, layer slicing, zero-layer prevention, and layer range string formatting.
 
 export function pledgeOf(m) {
-  if (!m || m.webgpu === false) return 0;
+  if (!m) return 0;
   const gb = m.contribGB ?? (m.maxBufGB ? m.maxBufGB * 0.5 : 0.5);
   return Math.max(0, gb || 0) * (2 ** 30);
 }
 
 export function calculateClusterPledge(hostMeta, peerMetas = []) {
-  const all = [hostMeta, ...peerMetas].filter((m) => m && m.webgpu !== false);
-  return all.reduce((acc, m) => acc + (m.webgpu ? Math.max(0, m.contribGB || 0) : 0), 0);
+  const all = [hostMeta, ...peerMetas].filter(Boolean);
+  return all.reduce((acc, m) => acc + Math.max(0, m.contribGB || 0), 0);
 }
 
 export function formatLayerRange(range, isHost = false) {
