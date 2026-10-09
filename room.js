@@ -98,20 +98,66 @@ let ai = {
   busy: false,
 };
 
-// Collect only a device label and a default memory pledge. GPU availability is
-// handled when local inference starts, rather than probing on every page load.
+// Cache the browser-reported WebGPU buffer limit once so later visits can use
+// the saved estimate without waiting for an adapter request.
 const ua = navigator.userAgent.includes("iPhone") ? "iPhone" :
   navigator.userAgent.includes("Mac") ? "Mac" :
   navigator.userAgent.includes("Android") ? "Android" : "Device";
 const phone = ua === "iPhone" || ua === "Android";
 const gbEl = $("join-gb");
 if (LOCAL_DEMO_PRESENTATION) gbEl?.closest("#join-pledge")?.setAttribute("hidden", "");
-if (phone && gbEl) {
-  gbEl.min = "0.5";
-  gbEl.step = "0.5";
-  gbEl.value = "0.5";
+const GPU_MEMORY_CACHE_KEY = "webslice-gpu-memory-v1";
+
+function readGpuMemoryCache() {
+  try {
+    const cached = JSON.parse(localStorage.getItem(GPU_MEMORY_CACHE_KEY) || "null");
+    if (cached?.version === 1 && cached.uaString === navigator.userAgent &&
+        Number.isFinite(cached.maxBufGB) && Number.isFinite(cached.contribGB)) {
+      return { ua, phone, maxBufGB: cached.maxBufGB, contribGB: cached.contribGB };
+    }
+  } catch {}
+  return null;
 }
-const metaPromise = Promise.resolve({ ua, phone, contribGB: phone ? 0.5 : 1 });
+
+function saveGpuMemoryCache(maxBufGB, contribGB) {
+  try {
+    localStorage.setItem(GPU_MEMORY_CACHE_KEY, JSON.stringify({
+      version: 1, uaString: navigator.userAgent, maxBufGB, contribGB, savedAt: Date.now(),
+    }));
+  } catch {}
+}
+
+function setMemoryPledgeInput(contribGB) {
+  if (!gbEl || LOCAL_DEMO_PRESENTATION) return;
+  gbEl.disabled = false;
+  $("gb-minus").disabled = false;
+  $("gb-plus").disabled = false;
+  gbEl.min = phone ? "0.5" : "1";
+  gbEl.step = phone ? "0.5" : "1";
+  gbEl.value = String(contribGB);
+}
+
+const cachedGpuMemory = LOCAL_DEMO_PRESENTATION ? null : readGpuMemoryCache();
+const metaPromise = cachedGpuMemory
+  ? Promise.resolve(cachedGpuMemory)
+  : (async () => {
+      if (LOCAL_DEMO_PRESENTATION) return { ua, phone, contribGB: 0 };
+      let maxBufGB = 0;
+      try {
+        const adapter = await Promise.race([
+          navigator.gpu?.requestAdapter() ?? Promise.resolve(null),
+          new Promise((resolve) => setTimeout(() => resolve(null), 2500)),
+        ]);
+        if (adapter) maxBufGB = +(adapter.limits.maxBufferSize / 2 ** 30).toFixed(1);
+      } catch {}
+      const contribGB = phone ? 0.5 : maxBufGB
+        ? Math.max(0.2, Math.min(64, Math.round(maxBufGB * 5) / 10))
+        : 1;
+      saveGpuMemoryCache(maxBufGB, contribGB);
+      setMemoryPledgeInput(contribGB);
+      return { ua, phone, maxBufGB, contribGB };
+    })();
+if (cachedGpuMemory) setMemoryPledgeInput(cachedGpuMemory.contribGB);
 
 // --- UI helpers ---
 function log(from, text) {
